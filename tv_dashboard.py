@@ -39,11 +39,11 @@ SECTIONS = {
     "analyse_agence_frequentation": {"title": "Analyse Agence : Fréquentation"},
     "analyse_service": {"title": "Analyse Détaillée par Service"}, # Exception à 3 graphiques
     "top_sevice": {"title": "Type d'activité par Service"},
-    "performance_agent_volume_temps": {"title": "Perf. Agent : Volume & Temps Moyen"},
-    "performance_agent_evolution_categorie": {"title": "Perf. Agent : Évolution & Catégorie"},
+    "performance_agent_volume_temps": {"title": "Performance Agent : Volume & Temps Moyen"},
+    "performance_agent_evolution_categorie": {"title": "Performance Agent : Évolution & Catégorie"},
     "analyse_attente_hebdomadaire": {"title": "Analyse Attente : Tendance Hebdo"},
     "supervision_monitoring": {"title": "Supervision : Monitoring Temps Réel"},
-    "prediction_affluence": {"title": "Prédiction de l'Affluence Future"},
+   # "prediction_affluence": {"title": "Prédiction de l'Affluence Future"},
     "fin_de_cycle": {"title": "Fin du Cycle"},
 }
 
@@ -95,9 +95,9 @@ def load_agencies_regions_info():
 
 # --- 4. FONCTIONS DE RENDU (Inchangées) ---
 def render_kpis_and_map_section(agg_global):
+    st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True)
     title=SECTIONS["kpis_et_carte"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-
     TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
     TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
@@ -108,11 +108,11 @@ def render_kpis_and_map_section(agg_global):
     st.divider()
     agg_map = agg_global.rename(columns={"Nom d'Agence": 'NomAgence', 'Capacité': 'Capacites', "Temps Moyen d'Attente (MIN)": 'Temps_Moyen_Attente', 'Nbs de Clients en Attente': 'AttenteActuel'})
     map_html = create_folium_map(agg_map)
-    with st.container(): html(map_html, height=450)
+    with st.container(): html(map_html, height=500)
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_top_sevice(df_all):
-  
+    st.markdown('<div id="top_sevice"></div>', unsafe_allow_html=True)
     title=SECTIONS["top_sevice"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -135,7 +135,7 @@ def render_top_sevice(df_all):
 
 def render_agency_analysis_performance_section(df_all):
     
- 
+    st.markdown('<div id="analyse_agence_performance"></div>', unsafe_allow_html=True)
     title=SECTIONS["analyse_agence_performance"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -146,6 +146,7 @@ def render_agency_analysis_performance_section(df_all):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agency_analysis_frequentation_section(df_all, df_queue):
+    st.markdown('<div id="analyse_agence_frequentation"></div>', unsafe_allow_html=True)
     title=SECTIONS["analyse_agence_frequentation"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -156,6 +157,7 @@ def render_agency_analysis_frequentation_section(df_all, df_queue):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_service_analysis_section(df_all, df_queue):
+    st.markdown('<div id="analyse_service"></div>', unsafe_allow_html=True)
     title=SECTIONS["analyse_service"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     col1, col2= st.columns(2)
@@ -169,6 +171,7 @@ def render_service_analysis_section(df_all, df_queue):
 # --- NOUVELLES FONCTIONS DE RENDU POUR LA PERFORMANCE DES AGENTS ---
 
 def render_agent_performance_volume_temps_section(df_all):
+    st.markdown('<div id="performance_agent_volume_temps"></div>', unsafe_allow_html=True)
     title=SECTIONS["performance_agent_volume_temps"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -179,6 +182,7 @@ def render_agent_performance_volume_temps_section(df_all):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agent_performance_evolution_categorie_section(df_all):
+    st.markdown('<div id="performance_agent_evolution_categorie"></div>', unsafe_allow_html=True)
     title=SECTIONS["performance_agent_evolution_categorie"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -189,6 +193,7 @@ def render_agent_performance_evolution_categorie_section(df_all):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_wait_time_analysis_section(df_queue):
+    st.markdown('<div id="analyse_attente_hebdomadaire"></div>', unsafe_allow_html=True)
     title=SECTIONS["analyse_attente_hebdomadaire"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     rapport_pd = run_analysis_pipeline(df_queue, filtrer_semaine=False)
@@ -215,34 +220,134 @@ def render_wait_time_analysis_section(df_queue):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions):
+    st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
     title=SECTIONS["supervision_monitoring"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-    online_agencies = df_queue['NomAgence'].unique().tolist()
-    all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique().tolist()
-    offline_agencies = sorted([a for a in all_known_agencies if a not in online_agencies])
-    _, agg_global = AgenceTable(df_all, df_queue)
-    agg_global = agg_global.sort_values(by='Nbs de Clients en Attente', ascending=False)
-    
-    st.subheader("Agences en Ligne")
-    num_cols = 4
-    for i in range(0, len(online_agencies), num_cols):
-        cols = st.columns(num_cols)
-        agences_chunk = online_agencies[i:i + num_cols]
-        for j, nom_agence in enumerate(agences_chunk):
-            with cols[j]:
-                agence_data = agg_global[agg_global["Nom d'Agence"] == nom_agence]
-                if not agence_data.empty:
-                    queue_now = agence_data['Nbs de Clients en Attente'].values[0]
-                    max_cap = agence_data['Capacité'].values[0]
-                    status_class = get_status_info(queue_now, max_cap)
-                    st.markdown(f"""<div style="background-color: #F8F9F9; border: 1px solid #D5D8DC; border-radius: 10px; padding: 12px; margin-bottom: 10px; color: black; min-height: 120px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="font-size: 16px;">{nom_agence}</strong>
-                            <span class="status-led {status_class}"><span class="tooltiptext"></span></span>
-                        </div>
-                        <div style="margin-top: 10px; font-size: 14px;">Clients en attente : <strong>{queue_now} / {max_cap}</strong></div>
-                    </div>""", unsafe_allow_html=True)
+    # --- Définir les styles au début pour la lisibilité ---
+    online_card_style = """
+        background-color: #F8F9F9; 
+        border: 1px solid #D5D8DC; 
+        border-radius: 10px; 
+        padding: 12px 16px; 
+        margin-bottom: 10px;
+        color: black;
+        min-height: 170px;
+    """
+    offline_card_style = """
+        background-color: #FEF2F2; 
+        border: 1px solid #F8C6C6; 
+        border-radius: 10px; 
+        padding: 12px 16px; 
+        margin-bottom: 10px;
+        color: black;
+        min-height: 170px;
+    """
+    section_title_style = """
+        text-align: center; 
+        width: 100%; 
+        margin-top: 10px; 
+        margin-bottom: 20px;
+        color: #555555;
+        font-size: 1.5em; 
+        font-weight: 500;
+    """
+    st.markdown("""
+        <style>
+            /* Cible le conteneur créé par st.columns */
+            [data-testid="stHorizontalBlock"] {
+                /* Réduit l'espace en dessous de la grille */
+                margin-bottom: 0px; 
+            }
+        </style>
+        """, unsafe_allow_html=True)
 
+     
+
+
+
+   
+    _, agg_global = AgenceTable(df_all, df_queue)
+   
+    agg_global = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
+    if not agg_global.empty:
+        st.markdown(f"<h3 style='{section_title_style}'>Agences en Lignes</h3>", unsafe_allow_html=True)
+        
+    agg_global = agg_global.sort_values(by='Nbs de Clients en Attente', ascending=False)
+    agences_a_afficher = agg_global["Nom d'Agence"].unique()
+    num_agences = len(agences_a_afficher)
+    
+    # Définir le nombre de colonnes, 4 est une bonne valeur pour la lisibilité
+    num_cols = 3
+    
+    # Créer les colonnes dynamiquement
+    j=0
+    
+    agences_a_afficher=list(agences_a_afficher)
+    #agences_a_afficher.extend(st.session_stat
+    columns_online = st.columns(num_cols)
+    for i, nom_agence in enumerate(agences_a_afficher):
+        col_index = i % num_cols
+        
+        agence_data = agg_global[agg_global["Nom d'Agence"] == nom_agence]
+        
+        # Votre logique de récupération de données reste la même
+        max_cap = agence_data['Capacité'].values[0]
+        queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+        df_agence_queue = df_queue[df_queue['NomAgence'] == nom_agence]
+        services_agence = df_agence_queue['NomService'].unique()
+        
+        service_dict = {}
+        for service in services_agence:
+            df_service_queue = df_agence_queue[df_agence_queue['NomService'] == service]
+            attente_service = current_attente(df_service_queue, nom_agence)
+            service_dict[service]=attente_service
+            
+        row = {
+            "NomAgence": nom_agence,
+            "Clients en Attente": queue_now,
+            "Services": service_dict,
+            "Status": get_status_info(queue_now, capacite=max_cap)
+        }
+        
+        # with open("led.css") as f:
+        #     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+        services_dynamic_html = ""
+        if row['Services']:
+            for service_name, client_count in row['Services'].items():
+                services_dynamic_html += f"""<div style="text-align: center; margin: 0 5px;">
+                        {service_name}<br><strong>{client_count}</strong>
+                    </div>"""
+        else:
+            services_dynamic_html = "<div>Aucun service spécifié.</div>"
+        
+        with columns_online[col_index]:
+            st.markdown(f"""
+                            <div style="
+                                background-color: {BackgroundGraphicColor}; 
+                                border: 1px solid #D5D8DC; 
+                                border-radius: 10px; 
+                                padding: 12px 16px; 
+                                margin-bottom: 10px;
+                                color: black;
+                                min-height: 170px;
+                            ">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong style="font-size: 16px;">{row['NomAgence']}</strong>
+                                    <div style="display: flex; align-items: center;">
+                                        <span class="status-led {row['Status']}"><span class="tooltiptext"></span></span> <span style="font-size: 14px;"></span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 14px;">
+                                    Clients en attente : <strong>{row['Clients en Attente']}</strong><br>
+                                    Capacité Maximale : <strong>{max_cap}</strong><br>
+                                    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 10px;">
+                                        {services_dynamic_html}
+                            </div>
+                            """, unsafe_allow_html=True)
+            
+    all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique().tolist()
+    offline_agencies = sorted([a for a in all_known_agencies if a not in agences_a_afficher])
     if offline_agencies:
         st.subheader("Agences Hors Ligne")
         for i in range(0, len(offline_agencies), num_cols):
@@ -308,6 +413,7 @@ def render_prediction_section(df_queue_filtered, conn):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_end_section():
+    st.markdown('<div id="fin_de_cycle"></div>', unsafe_allow_html=True)
     title=SECTIONS["fin_de_cycle"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     st.success("Le défilement va redémarrer depuis le début...")
@@ -429,7 +535,7 @@ def render_scrolling_dashboard():
         "performance_agent_evolution_categorie": (render_agent_performance_evolution_categorie_section, {'df_all': df_all_filtered}),
         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
-        "prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
+        #"prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
         "fin_de_cycle": (render_end_section, {}),
     }
 

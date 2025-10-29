@@ -970,10 +970,10 @@ def create_folium_map(agg):
     # 4. Déterminer la vue initiale de la carte
     if df.empty or df["Latitude"].isnull().all() or df["Longitude"].isnull().all():
         map_location = [14.4974, -14.4524] # Centre du Sénégal
-        map_zoom = 6
+        map_zoom = 4
     else:
         map_location = [df["Latitude"].mean(), df["Longitude"].mean()]
-        map_zoom = 7
+        map_zoom = 5
 
     # 5. Créer l'objet carte en utilisant la position sauvegardée si elle existe
     m = folium.Map(
