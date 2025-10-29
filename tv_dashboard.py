@@ -15,14 +15,50 @@ except ImportError:
 # --- 1. CONFIGURATION DE LA PAGE & INITIALISATION ---
 st.set_page_config(page_title="Marlodj TV Dashboard", layout="wide", page_icon="📺")
 
-def load_all_css():
+
+def load_base_css():
+    """Charge les CSS qui s'appliquent à TOUTE l'application."""
     try:
         with open("styles.css") as f: st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
         with open("led.css") as f: st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-        st.markdown("""<style>iframe[title="streamlit_echarts.st_echarts"]{ min-height: 500px !important }</style>""", unsafe_allow_html=True)
     except FileNotFoundError as e:
         st.error(f"Erreur de chargement CSS: Le fichier {e.filename} est introuvable.")
 
+def inject_scrolling_css():
+    """Injecte le CSS SPÉCIFIQUE au mode défilement plein écran."""
+    st.markdown("""
+        <style>
+            /* Cache la barre de défilement du corps principal */
+            body {
+                overflow: hidden;
+            }
+            /* Cible le conteneur principal de la vue Streamlit pour le transformer en conteneur de défilement */
+            [data-testid="stAppViewContainer"] > .main {
+                padding: 0;
+                margin: 0;
+                height: 100vh;
+                overflow-y: scroll;
+                scroll-snap-type: y mandatory;
+                scroll-behavior: smooth;
+            }
+            /* Chaque section est un point d'arrêt plein écran */
+            .main [data-testid="stVerticalBlock"] {
+                scroll-snap-align: start;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-evenly; /* Distribue l'espace verticalement */
+            }
+            
+            /* --- NOUVELLE RÈGLE POUR RÉDUIRE L'ESPACE SOUS LES TITRES --- */
+            /* Cible tous les titres (h1, h2, h3) qui sont à l'intérieur d'un bloc vertical */
+            .main [data-testid="stVerticalBlock"] h1,
+            .main [data-testid="stVerticalBlock"] h2,
+            .main [data-testid="stVerticalBlock"] h3 {
+                margin-bottom: 0.5rem !important; /* Réduit la marge inférieure. '!important' pour forcer la priorité */
+            }
+        </style>
+    """, unsafe_allow_html=True)
 # Initialisation de l'état de session
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'initial_date_selected' not in st.session_state: st.session_state.initial_date_selected = False
@@ -95,22 +131,47 @@ def load_agencies_regions_info():
 
 # --- 4. FONCTIONS DE RENDU (Inchangées) ---
 def render_kpis_and_map_section(agg_global):
+    
     st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True)
     title=SECTIONS["kpis_et_carte"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
     TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
-    kpi1, kpi2, kpi3 = st.columns(3)
-    kpi1.metric("Temps Moyen d'Opération (MIN)", f"{TMO:.0f}")
-    kpi2.metric("Temps Moyen d'Attente (MIN)", f"{TMA:.0f}")
-    kpi3.metric("Nombre Total de Clients", f"{NMC:.0f}")
+    c1,c2,c3=st.columns(3)
+    with c1: c1.metric("Temps Moyen d'Opération (MIN)", f"{TMO:.0f}")
+    with c2 :c2.metric("Temps Moyen d'Attente (MIN)", f"{TMA:.0f}")
+    with c3 :c3.metric("Nombre Total de Clients", f"{NMC:.0f}")
+    
+    # agg_map = agg_global.rename(columns={"Nom d'Agence": 'NomAgence', 'Capacité': 'Capacites', "Temps Moyen d'Attente (MIN)": 'Temps_Moyen_Attente', 'Nbs de Clients en Attente': 'AttenteActuel'})
+    # map_html = create_folium_map(agg_map)
+    # with st.container(): html(map_html, height=200)
     st.divider()
-    agg_map = agg_global.rename(columns={"Nom d'Agence": 'NomAgence', 'Capacité': 'Capacites', "Temps Moyen d'Attente (MIN)": 'Temps_Moyen_Attente', 'Nbs de Clients en Attente': 'AttenteActuel'})
-    map_html = create_folium_map(agg_map)
-    with st.container(): html(map_html, height=500)
-    st.markdown("<hr>", unsafe_allow_html=True)
-
+# def render_kpis_and_map_section(agg_global, **kwargs):
+#     # L'ancre et le titre restent, mais ils sont maintenant gérés par la mise en page Flexbox
+#     st.markdown(f"<h1 style='text-align: center;'>{SECTIONS['kpis_et_carte']['title']}</h1>", unsafe_allow_html=True)
+#     with open("styles.css") as f: st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+#     # Les KPIs sont placés dans leurs colonnes
+#     TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
+#     TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
+#     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
+    
+#     kpi1, kpi2, kpi3 = st.columns(3)
+#     kpi1.metric("Temps Moyen d'Opération (MIN)", f"{TMO:.0f}")
+#     kpi2.metric("Temps Moyen d'Attente (MIN)", f"{TMA:.0f}")
+#     kpi3.metric("Nombre Total de Clients", f"{NMC:.0f}")
+    
+#     # La carte est le dernier élément, elle prendra l'espace restant
+#     agg_map = agg_global.rename(columns={
+#         "Nom d'Agence": 'NomAgence', 
+#         'Capacité': 'Capacites', 
+#         "Temps Moyen d'Attente (MIN)": 'Temps_Moyen_Attente', 
+#         'Nbs de Clients en Attente': 'AttenteActuel'
+#     })
+#     map_html = create_folium_map(agg_map)
+    
+#     # On donne une hauteur généreuse à la carte
+#     html(map_html, height=600, scrolling=True)
 def render_top_sevice(df_all):
     st.markdown('<div id="top_sevice"></div>', unsafe_allow_html=True)
     title=SECTIONS["top_sevice"]['title']
@@ -506,12 +567,69 @@ def render_configuration_page(df_online_data):
         st.session_state.current_section_index = 0
         st.rerun()
 
+# def render_scrolling_dashboard():
+#     # Afficher les contrôles en haut
+#     if st.button("⏹️ Arrêter et Reconfigurer"):
+#         st.session_state.view_mode = 'config'
+#         st.session_state.scrolling_active = False
+#         st.rerun()
+        
+#     # Charger les données filtrées
+#     with st.spinner("Chargement des données..."):
+#         df_all, df_queue = load_all_data(st.session_state.start_date, st.session_state.end_date)
+#         df_all_filtered = df_all[df_all['NomAgence'].isin(st.session_state.selected_agencies)]
+#         df_queue_filtered = df_queue[df_queue['NomAgence'].isin(st.session_state.selected_agencies)]
+#         if df_all_filtered.empty:
+#             st.warning("Aucune donnée pour les filtres. Retour à la configuration.")
+#             st.session_state.view_mode = 'config'; st.session_state.scrolling_active = False
+#             time.sleep(3); st.rerun()
+#         _, agence_global, _, _ = AgenceTable2(df_all_filtered, df_queue_filtered)
+    
+#     # Dictionnaire des fonctions de rendu
+#     render_functions = {
+#         "kpis_et_carte": (render_kpis_and_map_section, {'agg_global': agence_global}),
+#         "top_sevice": (render_top_sevice, {'df_all': df_all_filtered}),
+#         "analyse_agence_performance": (render_agency_analysis_performance_section, {'df_all': df_all_filtered}),
+#         "analyse_agence_frequentation": (render_agency_analysis_frequentation_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
+#         "analyse_service": (render_service_analysis_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
+#         "performance_agent_volume_temps": (render_agent_performance_volume_temps_section, {'df_all': df_all_filtered}),
+#         "performance_agent_evolution_categorie": (render_agent_performance_evolution_categorie_section, {'df_all': df_all_filtered}),
+#         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
+#         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
+#         #"prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
+#         "fin_de_cycle": (render_end_section, {}),
+#     }
+
+#     enabled_anchors = [sec_id for sec_id, config in st.session_state.section_config.items() if config['enabled']]
+    
+#     # NE Rendre QUE les sections activées
+#     for anchor in enabled_anchors:
+#         if anchor in render_functions:
+#             func, kwargs = render_functions[anchor]
+#             func(**kwargs)
+
+#     # Logique de défilement
+#     if not enabled_anchors:
+#         st.warning("Aucune section n'est activée. Retour à la configuration."); time.sleep(3)
+#         st.session_state.view_mode = 'config'; st.session_state.scrolling_active = False; st.rerun()
+    
+#     current_anchor_id = enabled_anchors[st.session_state.current_section_index]
+#     scroll_to_anchor(current_anchor_id)
+#     time.sleep(st.session_state.get('scroll_duration', 15))
+#     st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
+#     st.rerun()
 def render_scrolling_dashboard():
-    # Afficher les contrôles en haut
+     # Cette ligne est la clé : le CSS plein écran n'est injecté que dans ce mode.
+    inject_scrolling_css()
+    # Afficher le bouton d'arrêt en haut de la page (placé de manière fixe)
+    st.markdown("""
+        <div style="position: fixed; top: 1rem; right: 1rem; z-index: 999;">
+    """, unsafe_allow_html=True)
     if st.button("⏹️ Arrêter et Reconfigurer"):
         st.session_state.view_mode = 'config'
         st.session_state.scrolling_active = False
         st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
         
     # Charger les données filtrées
     with st.spinner("Chargement des données..."):
@@ -524,7 +642,7 @@ def render_scrolling_dashboard():
             time.sleep(3); st.rerun()
         _, agence_global, _, _ = AgenceTable2(df_all_filtered, df_queue_filtered)
     
-    # Dictionnaire des fonctions de rendu
+    # Dictionnaire des fonctions de rendu (inchangé)
     render_functions = {
         "kpis_et_carte": (render_kpis_and_map_section, {'agg_global': agence_global}),
         "top_sevice": (render_top_sevice, {'df_all': df_all_filtered}),
@@ -535,47 +653,109 @@ def render_scrolling_dashboard():
         "performance_agent_evolution_categorie": (render_agent_performance_evolution_categorie_section, {'df_all': df_all_filtered}),
         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
-        #"prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
         "fin_de_cycle": (render_end_section, {}),
     }
 
     enabled_anchors = [sec_id for sec_id, config in st.session_state.section_config.items() if config['enabled']]
     
-    # NE Rendre QUE les sections activées
+    # --- NOUVELLE LOGIQUE DE RENDU SIMPLIFIÉE ---
+    # On boucle et on appelle simplement les fonctions. Le CSS fait le reste.
     for anchor in enabled_anchors:
         if anchor in render_functions:
             func, kwargs = render_functions[anchor]
+            # Chaque appel de fonction crée un nouveau bloc vertical que notre CSS va cibler
             func(**kwargs)
-
-    # Logique de défilement
+            
+    # --- LOGIQUE DE DÉFILEMENT INCHANGÉE ---
     if not enabled_anchors:
         st.warning("Aucune section n'est activée. Retour à la configuration."); time.sleep(3)
         st.session_state.view_mode = 'config'; st.session_state.scrolling_active = False; st.rerun()
     
     current_anchor_id = enabled_anchors[st.session_state.current_section_index]
-    scroll_to_anchor(current_anchor_id)
+    scroll_to_anchor(current_anchor_id) # Le JS déclenche le défilement
+    
     time.sleep(st.session_state.get('scroll_duration', 15))
+    
     st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
     st.rerun()
-
 # --- 6. ROUTEUR PRINCIPAL DE L'APPLICATION ---
 
-def show_login_page():
-    st.title("Connexion au Dashboard Marlodj")
-    conn = get_connection()
-    df_users = run_query(conn, SQLQueries().ProfilQueries)
-    users_dict = dict(zip(df_users['UserName'], df_users['MotDePasse']))
+# def show_login_page():
+#     st.title("Connexion au Dashboard Marlodj")
+#     conn = get_connection()
+#     df_users = run_query(conn, SQLQueries().ProfilQueries)
+#     users_dict = dict(zip(df_users['UserName'], df_users['MotDePasse']))
     
-    with st.form("login_form"):
-        username = st.text_input("Nom d'utilisateur")
-        password = st.text_input("Mot de passe", type="password")
-        if st.form_submit_button("Se connecter"):
-            if users_dict.get(username) == password:
-                st.session_state.logged_in = True
-                st.rerun()
-            else:
-                st.error("Nom d'utilisateur ou mot de passe incorrect.")
+#     with st.form("login_form"):
+#         username = st.text_input("Nom d'utilisateur")
+#         password = st.text_input("Mot de passe", type="password")
+#         if st.form_submit_button("Se connecter"):
+#             if users_dict.get(username) == password:
+#                 st.session_state.logged_in = True
+#                 st.rerun()
+#             else:
+#                 st.error("Nom d'utilisateur ou mot de passe incorrect.")
+def show_login_page():
+    # --- NOUVEAU : Créer des colonnes pour centrer le contenu ---
+    # Nous créons 3 colonnes, la colonne du milieu sera plus large
+    # Les colonnes latérales vides serviront de marges.
+    col1, col2, col3 = st.columns([1, 1.5, 1])
 
+    # Tout le contenu de la page de connexion ira dans la colonne du milieu
+    with col2:
+        # Optionnel : Affichez un logo au-dessus du formulaire
+        try:
+            # Assurez-vous d'avoir un fichier 'logo.png' dans votre dossier
+            st.image("logo.png", width=200) 
+        except Exception:
+            # Si le logo n'est pas trouvé, on ne fait rien
+            pass
+
+        # Appliquer un style CSS pour créer un effet de "carte"
+        st.markdown("""
+            <style>
+                .login-card {
+                    padding: 1rem;
+                    border-radius: 10px;
+                    background-color: #FFFFFF;
+                    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        # Envelopper le tout dans un conteneur avec la classe CSS
+        with st.container():
+            st.markdown('<div class="login-card">', unsafe_allow_html=True)
+            
+            st.title("Connexion au Dashboard Marlodj")
+            
+            # La logique de connexion reste la même
+            conn = get_connection()
+            df_users = run_query(conn, SQLQueries().ProfilQueries)
+            users_dict = dict(zip(df_users['UserName'], df_users['MotDePasse']))
+            
+            with st.form("login_form"):
+                st.text_input("Nom d'utilisateur", key="username_input")
+                st.text_input("Mot de passe", type="password", key="password_input")
+                
+                # --- NOUVEAU : Améliorer le bouton ---
+                submitted = st.form_submit_button(
+                    "Se connecter", 
+                    use_container_width=True, # Le bouton prend toute la largeur du formulaire
+                    type="primary" # Style plus visible
+                )
+                
+                if submitted:
+                    username = st.session_state.username_input
+                    password = st.session_state.password_input
+                    
+                    if users_dict.get(username) == password:
+                        st.session_state.logged_in = True
+                        st.rerun()
+                    else:
+                        st.error("Nom d'utilisateur ou mot de passe incorrect.")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 def show_initial_date_selection_page():
     st.title("Bienvenue sur le Dashboard TV")
     st.header("Veuillez sélectionner une plage de dates initiale pour commencer")
@@ -593,7 +773,8 @@ def show_initial_date_selection_page():
         st.session_state.scrolling_active = False
         st.rerun()
 
-load_all_css()
+# Charger les CSS de base une seule fois au début
+load_base_css()
 if not st.session_state.logged_in:
     show_login_page()
 elif not st.session_state.initial_date_selected:
