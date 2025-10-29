@@ -35,10 +35,10 @@ if 'selected_agencies' not in st.session_state: st.session_state.selected_agenci
 # --- 2. DÉFINITION DES SECTIONS ET MÉCANISME DE DÉFILEMENT ---
 SECTIONS = {
     "kpis_et_carte": {"title": "Vue d'Ensemble : KPIs et Carte"},
-    "tableau_global": {"title": "Tableau Global par Agence"},
     "analyse_agence_performance": {"title": "Analyse Agence : Performance & Lenteur"},
     "analyse_agence_frequentation": {"title": "Analyse Agence : Fréquentation"},
     "analyse_service": {"title": "Analyse Détaillée par Service"}, # Exception à 3 graphiques
+    "top_sevice": {"title": "Type d'activité par Service"},
     "performance_agent_volume_temps": {"title": "Perf. Agent : Volume & Temps Moyen"},
     "performance_agent_evolution_categorie": {"title": "Perf. Agent : Évolution & Catégorie"},
     "analyse_attente_hebdomadaire": {"title": "Analyse Attente : Tendance Hebdo"},
@@ -95,8 +95,9 @@ def load_agencies_regions_info():
 
 # --- 4. FONCTIONS DE RENDU (Inchangées) ---
 def render_kpis_and_map_section(agg_global):
-    st.markdown(f'<div id="kpis_et_carte"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["kpis_et_carte"]['title'])
+    title=SECTIONS["kpis_et_carte"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
+
     TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
     TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
@@ -110,18 +111,33 @@ def render_kpis_and_map_section(agg_global):
     with st.container(): html(map_html, height=450)
     st.markdown("<hr>", unsafe_allow_html=True)
 
-def render_global_table_section(agence_global):
-    st.markdown(f'<div id="tableau_global"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["tableau_global"]['title'])
-    if not agence_global.empty:
-        st.dataframe(agence_global.drop(columns=['Longitude', 'Latitude'], errors='ignore'), use_container_width=True, height=500)
-    st.markdown("<hr>", unsafe_allow_html=True)
+def render_top_sevice(df_all):
+  
+    title=SECTIONS["top_sevice"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    figures_activity = analyse_activity(df_all, type='Type_Operation', concern='NomService')
+    with c1:
+        
+        
+        st_echarts(options=figures_activity[0], height="600px", key="service_activity_1")
+   
+    with c2:
+        
+        st_echarts(options=figures_activity[1], height="600px", key="service_activity_2")
+
+   
+      
+
+
 
 # --- NOUVELLES FONCTIONS DE RENDU POUR L'ANALYSE PAR AGENCE ---
 
 def render_agency_analysis_performance_section(df_all):
-    st.markdown(f'<div id="analyse_agence_performance"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["analyse_agence_performance"]['title'])
+    
+ 
+    title=SECTIONS["analyse_agence_performance"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st_echarts(options=stacked_chart2(df_all, 'TempsAttenteReel', 'NomAgence', "Catégorisation du Temps d'Attente"), height="500px")
@@ -130,8 +146,8 @@ def render_agency_analysis_performance_section(df_all):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agency_analysis_frequentation_section(df_all, df_queue):
-    st.markdown(f'<div id="analyse_agence_frequentation"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["analyse_agence_frequentation"]['title'])
+    title=SECTIONS["analyse_agence_frequentation"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.plotly_chart(top_agence_freq(df_all, df_queue, title=['Total Tickets', 'Total Traités']), use_container_width=True)
@@ -140,26 +156,21 @@ def render_agency_analysis_frequentation_section(df_all, df_queue):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_service_analysis_section(df_all, df_queue):
-    st.markdown(f'<div id="analyse_service"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["analyse_service"]['title'])
-    col1, col2, col3 = st.columns(3)
+    title=SECTIONS["analyse_service"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
+    col1, col2= st.columns(2)
     with col1:
         st_echarts(options=GraphsGlob2(df_all, "Temps Moyen par Service"), height="600px")
     with col2:
         st_echarts(options=Top10_Type(df_queue, title="Top 10 Opérations"), height="600px")
-    with col3:
-        figures_activity = analyse_activity(df_all, type='Type_Operation', concern='NomService')
-        if figures_activity:
-            st_echarts(options=figures_activity[0], height="600px", key="service_activity_chart")
-        else:
-            st.info("Pas de données pour l'analyse d'activité détaillée.")
+    
     st.markdown("<hr>", unsafe_allow_html=True)
 
 # --- NOUVELLES FONCTIONS DE RENDU POUR LA PERFORMANCE DES AGENTS ---
 
 def render_agent_performance_volume_temps_section(df_all):
-    st.markdown(f'<div id="performance_agent_volume_temps"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["performance_agent_volume_temps"]['title'])
+    title=SECTIONS["performance_agent_volume_temps"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st_echarts(options=create_pie_chart2(df_all, title='Opérations Traitées'), height="500px", key='pie_agent')
@@ -168,8 +179,8 @@ def render_agent_performance_volume_temps_section(df_all):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agent_performance_evolution_categorie_section(df_all):
-    st.markdown(f'<div id="performance_agent_evolution_categorie"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["performance_agent_evolution_categorie"]['title'])
+    title=SECTIONS["performance_agent_evolution_categorie"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
@@ -178,8 +189,8 @@ def render_agent_performance_evolution_categorie_section(df_all):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_wait_time_analysis_section(df_queue):
-    st.markdown(f'<div id="analyse_attente_hebdomadaire"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["analyse_attente_hebdomadaire"]['title'])
+    title=SECTIONS["analyse_attente_hebdomadaire"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     rapport_pd = run_analysis_pipeline(df_queue, filtrer_semaine=False)
     if rapport_pd.empty:
         st.warning("Données insuffisantes pour l'analyse de l'attente.")
@@ -204,8 +215,8 @@ def render_wait_time_analysis_section(df_queue):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions):
-    st.markdown(f'<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["supervision_monitoring"]['title'])
+    title=SECTIONS["supervision_monitoring"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     online_agencies = df_queue['NomAgence'].unique().tolist()
     all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique().tolist()
     offline_agencies = sorted([a for a in all_known_agencies if a not in online_agencies])
@@ -245,8 +256,8 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions)
     st.markdown("<hr>", unsafe_allow_html=True)
     
 def render_prediction_section(df_queue_filtered, conn):
-    st.markdown(f'<div id="prediction_affluence"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["prediction_affluence"]['title'])
+    title=SECTIONS["prediction_affluence"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     is_today = (st.session_state.end_date == datetime.now().date())
     if is_today and not df_queue_filtered.empty:
         df_actual = df_queue_filtered[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
@@ -297,8 +308,8 @@ def render_prediction_section(df_queue_filtered, conn):
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_end_section():
-    st.markdown(f'<div id="fin_de_cycle"></div>', unsafe_allow_html=True)
-    st.header(SECTIONS["fin_de_cycle"]['title'])
+    title=SECTIONS["fin_de_cycle"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     st.success("Le défilement va redémarrer depuis le début...")
 
 # --- 5. INTERFACE ET LOGIQUE PRINCIPALE ---
@@ -410,7 +421,7 @@ def render_scrolling_dashboard():
     # Dictionnaire des fonctions de rendu
     render_functions = {
         "kpis_et_carte": (render_kpis_and_map_section, {'agg_global': agence_global}),
-        "tableau_global": (render_global_table_section, {'agence_global': agence_global}),
+        "top_sevice": (render_top_sevice, {'df_all': df_all_filtered}),
         "analyse_agence_performance": (render_agency_analysis_performance_section, {'df_all': df_all_filtered}),
         "analyse_agence_frequentation": (render_agency_analysis_frequentation_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
         "analyse_service": (render_service_analysis_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
