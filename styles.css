@@ -1,0 +1,143 @@
+/* styles.css */
+
+/* ========== FOND GLOBAL DE L'APPLICATION ========== */
+.stApp {
+    background-color: #f5f2f2;  
+    color: black; /* Le texte par défaut de l'application sera noir */
+    font-family: "Segoe UI", sans-serif;
+    margin-top: -70px; #Adjust this value as needed */
+}
+
+
+/* ========== SUPPRIMER L'ESPACE BLANC EN HAUT DE PAGE (PAGE PRINCIPALE) ========== */
+/* Masque l'en-tête par défaut de Streamlit si elle existe et crée un espace */
+header[data-testid="stHeader"] {
+    display: none;
+}
+/* Supprime la marge intérieure supérieure de la section principale de l'application */
+/* section.main {
+    padding-top: 0rem;
+} */
+
+
+/* ========== MASQUER LE BOUTON D'OUVERTURE/FERMETURE DU SIDEBAR ========== */
+/* [data-testid="stSidebarCollapseButton"] {
+    display: none;
+} */
+
+/* ========== SIDEBAR ========== */
+section[data-testid="stSidebar"] {
+    background-color: #013447; /* Fond de la sidebar : noir très foncé */
+    color: #fbfbfb; /* Cette couleur est pour le texte général de la sidebar, mais sera souvent surchargée */
+    border-right: 2px solid #013447;
+    height: 200vh !important;
+   
+}
+
+/* NOUVELLE RÈGLE : Supprimer l'espace blanc en bas du contenu du sidebar */
+section[data-testid="stSidebarContent"] {
+    padding-bottom: 0rem !important; /* Très important pour surcharger tout padding par défaut */
+    min-height: unset !important;     /* S'assurer qu'aucune hauteur minimale ne force l'espace */
+    color: white; /* Ceci s'applique au texte "général" directement dans le sidebarContent */
+}
+
+/* --- AJOUTE CES LIGNES POUR LES NOMS DE PAGE DE LA SIDEBAR --- */
+/* Cibler spécifiquement les noms des pages (liens de navigation) dans la sidebar */
+[data-testid="stSidebarNavItems"] > li > div > a > span {
+    color: #ffffff !important; /* Force le texte des noms de page en blanc */
+}
+/* --- FIN DE L'AJOUT --- */
+
+[data-testid="stSidebarNav"] ul {
+    max-height: 500px; /* Adaptez cette valeur */
+    overflow-y: hidden;
+}
+
+
+/* ========== TITRES (h1, h2, h3...) ========== */
+h1, h2, h3, h4, h5 {
+    color: #013447; /* Bleu pour les titres */
+    font-weight: bold;
+}
+
+/* ========== METRICS ========== */
+[data-testid="stMetric"] {
+    background-color: #FFFFFF;
+    padding: 15px;
+    border: 1px solid #DDD;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+[data-testid="stMetricLabel"] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ========== TABLES STYLÉES (HTML) ========== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    
+}
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    
+    
+}
+th {
+    background-color: #ececec;
+    color: rgb(0, 0, 0);
+    
+}
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+/* Couleur du texte de l'option sélectionnée dans st.selectbox */
+div[data-testid="stSelectbox"] div.st-emotion-cache-1n76ycx p { /* Ce sélecteur peut varier légèrement avec les versions de Streamlit */
+    color: #013447 !important;
+}
+
+/* Couleur du texte de l'onglet sélectionné dans st.tabs */
+button[data-testid^="stTabButton"][aria-selected="true"] {
+    color: #013447 !important;
+}
+
+/* Optionnel : couleur de fond et bordure de l'onglet sélectionné pour un meilleur contraste */
+button[data-testid^="stTabButton"][aria-selected="true"] {
+    background-color: #f7f7f7 !important; /* Fond blanc */
+    border-bottom-color: #013447 !important; /* Bordure noire en bas de l'onglet sélectionné */
+}
+
+/* Cibler le texte "écrit" (st.write) dans le sidebar */
+section[data-testid="stSidebar"] p {
+    color: white !important;
+}
+
+/* Cibler les labels des inputs (st.text_input, st.number_input, etc.) dans le sidebar */
+section[data-testid="stSidebar"] label p {
+    color: white !important;
+    background-color: #013447;
+}
+
+/* ========== POP-OVER (st.popover) ========== */
+/* Assure que le texte à l'intérieur des popovers est noir */
+div[data-testid="stPopover"] p,
+div[data-testid="stPopover"] label p,
+div[data-testid="stPopover"] div.st-emotion-cache-1n76ycx p {
+    color: rgb(0, 0, 0) !important;
+}
+
+/* ... (votre CSS précédent pour les couleurs) ... */
+
+/* Nouvelle règle pour centrer les titres des onglets */
+[data-testid="stTabs"] [role="tablist"] {
+    justify-content: center;
+    gap: 60px; 
+
+}
+
+

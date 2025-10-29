@@ -1,0 +1,157 @@
+/* Base style for the status LED */
+.status-led {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.4); /* Subtle initial shadow */
+    animation-duration: 2s; /* How long one cycle of the animation takes */
+    animation-iteration-count: infinite; /* Loop the animation indefinitely */
+    animation-timing-function: ease-in-out; /* Smooth start and end */
+}
+
+/* Define colors and glow animations for each status */
+.status-led-white {
+    background-color: #f0f0f0; /* Off-white for 'Vide' */
+    animation-name: glow-white;
+}
+
+.status-led-green {
+    background-color: #34c759; /* Bright Green */
+    animation-name: glow-green;
+}
+
+.status-led-yellow {
+    background-color: #ffd700; /* ou #ffff00 si vous préférez */
+    animation: glow-gold 2s infinite; /* ou glow-yellow */
+}
+.status-led-orange {
+    background-color: #ff9500; /* Bright Orange */
+    animation-name: glow-orange;
+}
+
+
+.status-led-red {
+    background-color: #ff3b30; /* Bright Red */
+    animation-name: glow-red;
+}
+
+/* .status-led-blue {
+    background-color: #007aff; /* Bright Blue */
+    /* animation-name: glow-blue; */
+/* } */ 
+
+.status-led-black {
+    background-color: #333333; /* Dark Grey/Black for unavailable */
+    animation-name: glow-black;
+}
+
+/* Keyframe animations for glowing effect */
+@keyframes glow-white {
+    0% { box-shadow: 0 0 4px rgba(240, 240, 240, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(255, 255, 255, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(240, 240, 240, 0.4); }
+}
+
+@keyframes glow-green {
+    0% { box-shadow: 0 0 4px rgba(52, 199, 89, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(52, 199, 89, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(52, 199, 89, 0.4); }
+}
+@keyframes glow-yellow {
+    0% { box-shadow: 0 0 4px rgba(255, 255, 0, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(255, 255, 0, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(255, 255, 0, 0.4); }
+}
+@keyframes glow-orange {
+    0% { box-shadow: 0 0 4px rgba(255, 149, 0, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(255, 149, 0, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(255, 149, 0, 0.4); }
+}
+
+@keyframes glow-red {
+    0% { box-shadow: 0 0 4px rgba(255, 59, 48, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(255, 59, 48, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(255, 59, 48, 0.4); }
+}
+
+/* @keyframes glow-blue {
+    0% { box-shadow: 0 0 4px rgba(0, 122, 255, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(0, 122, 255, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(0, 122, 255, 0.4); }
+} */
+
+@keyframes glow-black {
+    0% { box-shadow: 0 0 4px rgba(51, 51, 51, 0.4); }
+    50% { box-shadow: 0 0 12px rgba(51, 51, 51, 0.8); }
+    100% { box-shadow: 0 0 4px rgba(51, 51, 51, 0.4); }
+}
+
+
+
+/* --- NEW: Tooltip Styles --- */
+
+/* The tooltip container */
+.status-led .tooltiptext {
+    visibility: hidden; /* Hidden by default */
+    width: 200px;
+    background-color: transparent;
+    color: red;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 100%; /* Position the tooltip above the LED */
+    left: 70%;
+    margin-left: -60px; /* Use half of the width to center the tooltip */
+    opacity:0;
+    transition: opacity 0.3s;
+    font-size: 20px;
+}
+
+/* The arrow for the tooltip */
+.status-led .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* At the bottom of the tooltip */
+    left: 70%;
+    margin-left: -3px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* Show the tooltip on hover */
+.status-led:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* --- Corrected: Define tooltip text for each color --- */
+
+/* The selector must match the new class names directly */
+.status-led-white .tooltiptext::before {
+    content: "Vide"; /* Text for white status */
+}
+
+.status-led-green .tooltiptext::before {
+    content: "Modérement occupée"; /* Text for green status */
+}
+
+.status-led-yellow .tooltiptext::before {
+    content: "Fortement occupée"; /* Text for orange status */
+}
+
+.status-led-orange .tooltiptext::before {
+    content: "Très fortement occupée"; /* Text for red status */
+}
+
+.status-led-red .tooltiptext::before {
+    content: "Congestionnée"; /* Text for blue status */
+}
+
+.status-led-black .tooltiptext::before {
+    content: "Indisponible"; /* Text for black status */
+}
