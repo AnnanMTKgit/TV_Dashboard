@@ -77,7 +77,7 @@ SECTIONS = {
     "top_sevice": {"title": "Type d'activité par Service"},
     "performance_agent_volume_temps": {"title": "Performance Agent : Volume & Temps Moyen"},
     "performance_agent_evolution_categorie": {"title": "Performance Agent : Évolution & Catégorie"},
-    "analyse_attente_hebdomadaire": {"title": "Analyse Attente : Tendance Hebdo"},
+    "analyse_attente_hebdomadaire": {"title": "Analyse Attente : Tendance Journalière"},
     "supervision_monitoring": {"title": "Supervision : Monitoring Temps Réel"},
    # "prediction_affluence": {"title": "Prédiction de l'Affluence Future"},
    "supervision_offline": {"title": "Supervision : Statut des Agences Hors Ligne"}, # <-- NOUVELLE LIGNE
@@ -256,8 +256,8 @@ def render_agent_performance_evolution_categorie_section(df_all):
 
 def render_wait_time_analysis_section(df_queue, **kwargs):
     st.markdown('<div id="analyse_attente_hebdomadaire"></div>', unsafe_allow_html=True)
-  
-    st.markdown(f"<h1 style='text-align: center;'>Heatmap de la Charge par Agence et par Heure</h1>", unsafe_allow_html=True)
+    title=SECTIONS["analyse_attente_hebdomadaire"]['title']
+    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
 
     # --- 1. Préparation des données ---
     # --- Préparation des données (inchangée) ---
@@ -290,7 +290,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
     max_val = float(heatmap_data_agg['nb_attente'].max()) if not heatmap_data_agg.empty else 10.0
     
     # --- Configuration ECharts ---
-    options_heatmap = {
+    options_heatmap = {'title': {"text": "Heatmap de l'Attente Moyenne par Agence et Heure", "left": "center"},
         "tooltip": {"position": "top"},
         "grid": {"height": "80%", "top": "5%", "left": "10%", "right": "10%"}, # Ajuster les marges pour laisser de la place
         
@@ -596,7 +596,7 @@ def render_configuration_page():
     
     _, col_logout = st.columns([0.9, 0.1])
     with col_logout:
-        if st.button("🚪", help="Se déconnecter"):
+        if st.button("🔴Déconnection", help="Se déconnecter"):
             for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
 
