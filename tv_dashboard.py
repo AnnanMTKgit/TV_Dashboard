@@ -366,7 +366,7 @@ def render_agency_analysis_performance_section(df_all):
     with c1:
         st_echarts(options=stacked_chart2(df_all, 'TempsAttenteReel', 'NomAgence', "Catégorisation du Temps d'Attente"), height="500px")
     with c2:
-        st_echarts(options=area_graph2(df_all, concern='NomAgence', time='TempOperation', date_to_bin='Date_Fin', seuil=5, title="Top 5 - Temps d'Opération"), height="500px")
+        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'NomAgence', "Catégorisation du Temps des Opérations"), height="500px")
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agency_analysis_frequentation_section(df_all, df_queue):
