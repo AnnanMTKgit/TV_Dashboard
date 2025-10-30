@@ -1695,7 +1695,7 @@ def area_graph2(data,concern='UserName',time='TempOperation',date_to_bin='Date_F
             "lineStyle": {
                 "type": "dashed",         # 'dashed' pour des tirets, 'dotted' pour des points
                 "color": "#333",          # Couleur de la ligne (gris foncé)
-                "width": 2                # Épaisseur de la ligne
+                "width": 0               # Épaisseur de la ligne
             },
             "data": [
                 {
