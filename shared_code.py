@@ -1185,11 +1185,11 @@ def stacked_chart2(data,type:str,concern:str,titre):
             ,
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
         # Get legend data from the pivoted DataFrame's columns
-        "legend": {"data": df_pivoted.columns.tolist(),"left":'right'},
+        "legend": {"data": df_pivoted.columns.tolist(),"top": "bottom"},
         "grid": {
-            "left": "3%",
+            "left": "5%",
             "right": "6%",
-            "bottom": "15%", # Increase bottom margin for rotated labels
+            "bottom": "10%", # Increase bottom margin for rotated labels
             "containLabel": True
         },
         # X-axis uses categories from the pivoted DataFrame's index
@@ -1297,6 +1297,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
 
         # Define the full ECharts options dictionary
         options = {
+            "backgroundColor":BackgroundGraphicColor,
             "title": {
                 "text": titre,
                 "left": "center"
@@ -1659,8 +1660,8 @@ def area_graph2(data,concern='UserName',time='TempOperation',date_to_bin='Date_F
             "color": GraphicTitleColor
         }},
     "tooltip": {"trigger": "axis"},
-    "legend": {"data": top_agences,'orient':'vertical',"left": 'right'}, # Use the list of agencies for the legend
-    "grid": {"left": '5%', "right": '5%', "bottom": '5%',"top":"5%", "containLabel": True},
+    "legend": {"data": top_agences,'orient':'horizontal',"top": "bottom"}, # Use the list of agencies for the legend
+    "grid": {"left": '3%', "right": '6%', "bottom": '10%',"top":"5%", "containLabel": True},
     "toolbox": {"left": "5%", "feature": {"saveAsImage": {},"magicType": {
                 "show": True,
                 "type": ['line', 'bar', 'stack'], # Types de graphiques interchangeables

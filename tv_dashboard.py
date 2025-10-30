@@ -251,7 +251,7 @@ def render_agent_performance_evolution_categorie_section(df_all):
     with c1:
         st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
     with c2:
-        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="600px")
+        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="500px")
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_wait_time_analysis_section(df_queue, **kwargs):
