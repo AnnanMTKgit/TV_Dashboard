@@ -1680,8 +1680,9 @@ def area_graph2(data,concern='UserName',time='TempOperation',date_to_bin='Date_F
     "series": [
         {
             "name": agence,
-            "type": "line",
-            "areaStyle": {},  # This is equivalent to Plotly's fill='tozeroy'
+            "type": "bar",
+            "stack": "total", # This key is what creates the stacking
+            # "areaStyle": {},  # This is equivalent to Plotly's fill='tozeroy'
             "emphasis": {"focus": "series"},
             "data": df_pivoted[agence].tolist(), # Get data for each agency from its column
             "lineStyle": {"color": colors[i % len(colors)]}, # Assign a color
