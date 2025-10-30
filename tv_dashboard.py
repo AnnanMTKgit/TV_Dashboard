@@ -34,7 +34,7 @@ def inject_scrolling_css():
             }
             /* Cible le conteneur principal de la vue Streamlit pour le transformer en conteneur de défilement */
             [data-testid="stAppViewContainer"] > .main {
-                padding: 0;
+                padding: 0!important;
                 margin: 0;
                 height: 100vh;
                 overflow-y: scroll;
@@ -44,7 +44,7 @@ def inject_scrolling_css():
             /* Chaque section est un point d'arrêt plein écran */
             .main [data-testid="stVerticalBlock"] {
                 scroll-snap-align: start;
-                min-height: 100vh;
+                min-height: 90vh;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-evenly; /* Distribue l'espace verticalement */
@@ -55,7 +55,7 @@ def inject_scrolling_css():
             .main [data-testid="stVerticalBlock"] h1,
             .main [data-testid="stVerticalBlock"] h2,
             .main [data-testid="stVerticalBlock"] h3 {
-                margin-bottom: 0.5rem !important; /* Réduit la marge inférieure. '!important' pour forcer la priorité */
+                margin-bottom: 0.25rem !important; /* Réduit la marge inférieure. '!important' pour forcer la priorité */
             }
         </style>
     """, unsafe_allow_html=True)
@@ -187,7 +187,7 @@ def render_top_sevice(df_all):
         
         st_echarts(options=figures_activity[1], height="600px", key="service_activity_2")
 
-   
+    st.markdown("<hr>", unsafe_allow_html=True)
       
 
 
@@ -237,7 +237,7 @@ def render_agent_performance_volume_temps_section(df_all):
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        st_echarts(options=create_pie_chart2(df_all, title='Opérations Traitées'), height="500px", key='pie_agent')
+        st_echarts(options=create_pie_chart2(df_all, title='Traitée'), height="500px", key='pie_agent')
     with c2:
         st_echarts(options=create_bar_chart2(df_all, status='Traitée'), height="500px", key="bar_agent")
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -269,157 +269,165 @@ def render_wait_time_analysis_section(df_queue):
              if not charge_journaliere_df.empty:
                 max_charge = charge_journaliere_df['Charge_Journaliere'].max()
                 bar_data = [{"value": round(r['Charge_Journaliere'], 2), "itemStyle": {"color": "#546E7A"} if r['Charge_Journaliere'] == max_charge else {"color": "#6c8dff"}} for _, r in charge_journaliere_df.iterrows()]
-                options_bar = {"tooltip": {"trigger": "axis"}, "xAxis": {"type": "category", "data": charge_journaliere_df['Jour_semaine'].tolist()}, "yAxis": {"type": "value"}, "series": [{"type": "bar", "data": bar_data}]}
+                options_bar = {"tooltip": {"trigger": "axis"}, "xAxis": {"type": "category", "data": charge_journaliere_df['Jour_semaine'].tolist()},"grid": {"left": '5%', "right": '5%', "bottom": '15%',"top":"-5%", "containLabel": True}, "yAxis": {"type": "value"}, "series": [{"type": "bar", "data": bar_data}]}
                 st_echarts(options=options_bar, height="500px")
         with c2:
             st.subheader("Heatmap de la Charge Moyenne")
             heures_int = sorted(rapport_moyen['Heure_jour'].unique())
             jours_a_afficher_inverse = rapport_moyen['Jour_semaine'].cat.categories[::-1]
             heatmap_data = [[x, y, round(float(rapport_moyen[(rapport_moyen['Jour_semaine'] == jour) & (rapport_moyen['Heure_jour'] == heure)]['nb_attente_moyen'].values[0]), 2)] for y, jour in enumerate(jours_a_afficher_inverse) for x, heure in enumerate(heures_int) if not rapport_moyen[(rapport_moyen['Jour_semaine'] == jour) & (rapport_moyen['Heure_jour'] == heure)].empty]
-            options_heatmap = {"tooltip": {}, "xAxis": {"type": "category", "data": [f"{h:02d}h" for h in heures_int]}, "yAxis": {"type": "category", "data": jours_a_afficher_inverse.tolist()}, "visualMap": {"min": float(rapport_moyen['nb_attente_moyen'].min()), "max": float(rapport_moyen['nb_attente_moyen'].max()), "calculable": True, "orient": "horizontal", "left": "center", "bottom": "5%"}, "series": [{"type": "heatmap", "data": heatmap_data, "label": {"show": True}}]}
+            options_heatmap = {"tooltip": {}, "xAxis": {"type": "category", "data": [f"{h:02d}h" for h in heures_int]}, "yAxis": {"type": "category", "data": jours_a_afficher_inverse.tolist()}, "visualMap": {"min": float(rapport_moyen['nb_attente_moyen'].min()), "max": float(rapport_moyen['nb_attente_moyen'].max()), "calculable": True, "orient": "horizontal", "left": "center", "bottom": "2%"}, "series": [{"type": "heatmap", "data": heatmap_data, "label": {"show": True}}]}
             st_echarts(options=options_heatmap, height="500px")
     st.markdown("<hr>", unsafe_allow_html=True)
 
-def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions):
+def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, **kwargs):
     st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
-    title=SECTIONS["supervision_monitoring"]['title']
-    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-    # --- Définir les styles au début pour la lisibilité ---
-    online_card_style = """
-        background-color: #F8F9F9; 
-        border: 1px solid #D5D8DC; 
-        border-radius: 10px; 
-        padding: 12px 16px; 
-        margin-bottom: 10px;
-        color: black;
-        min-height: 170px;
-    """
-    offline_card_style = """
-        background-color: #FEF2F2; 
-        border: 1px solid #F8C6C6; 
-        border-radius: 10px; 
-        padding: 12px 16px; 
-        margin-bottom: 10px;
-        color: black;
-        min-height: 170px;
-    """
-    section_title_style = """
-        text-align: center; 
-        width: 100%; 
-        margin-top: 10px; 
-        margin-bottom: 20px;
-        color: #555555;
-        font-size: 1.5em; 
-        font-weight: 500;
-    """
-    st.markdown("""
-        <style>
-            /* Cible le conteneur créé par st.columns */
-            [data-testid="stHorizontalBlock"] {
-                /* Réduit l'espace en dessous de la grille */
-                margin-bottom: 0px; 
-            }
-        </style>
-        """, unsafe_allow_html=True)
+    st.header(SECTIONS["supervision_monitoring"]['title'])
 
-     
-
-
-
-   
+    # --- 1. Préparation des données ---
     _, agg_global = AgenceTable(df_all, df_queue)
-   
-    agg_global = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
-    if not agg_global.empty:
-        st.markdown(f"<h3 style='{section_title_style}'>Agences en Lignes</h3>", unsafe_allow_html=True)
-        
-    agg_global = agg_global.sort_values(by='Nbs de Clients en Attente', ascending=False)
-    agences_a_afficher = agg_global["Nom d'Agence"].unique()
-    num_agences = len(agences_a_afficher)
+    agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
     
-    # Définir le nombre de colonnes, 4 est une bonne valeur pour la lisibilité
-    num_cols = 3
+    df_with_regions = pd.merge(
+        agg_global_filtered,
+        df_agencies_regions[['NomAgence', 'Region']],
+        left_on="Nom d'Agence",
+        right_on="NomAgence",
+        how="left"
+    )
+  
+    dashboard_data = []
     
-    # Créer les colonnes dynamiquement
-    j=0
-    
-    agences_a_afficher=list(agences_a_afficher)
-    #agences_a_afficher.extend(st.session_stat
-    columns_online = st.columns(num_cols)
-    for i, nom_agence in enumerate(agences_a_afficher):
-        col_index = i % num_cols
+    for _, row in df_with_regions.iterrows():
+        nom_agence = row["Nom d'Agence"]
+        queue_now = row['Nbs de Clients en Attente']
+        max_cap = row['Capacité']
+        ratio = queue_now / max_cap if max_cap > 0 else -1 # Utiliser -1 pour le cas où la capacité est 0
         
-        agence_data = agg_global[agg_global["Nom d'Agence"] == nom_agence]
-        
-        # Votre logique de récupération de données reste la même
-        max_cap = agence_data['Capacité'].values[0]
-        queue_now = agence_data['Nbs de Clients en Attente'].values[0]
-        df_agence_queue = df_queue[df_queue['NomAgence'] == nom_agence]
-        services_agence = df_agence_queue['NomService'].unique()
-        
-        service_dict = {}
-        for service in services_agence:
-            df_service_queue = df_agence_queue[df_agence_queue['NomService'] == service]
-            attente_service = current_attente(df_service_queue, nom_agence)
-            service_dict[service]=attente_service
-            
-        row = {
-            "NomAgence": nom_agence,
-            "Clients en Attente": queue_now,
-            "Services": service_dict,
-            "Status": get_status_info(queue_now, capacite=max_cap)
-        }
-        
-        # with open("led.css") as f:
-        #     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+        # --- DÉBUT DE LA CORRECTION : Logique de statut personnalisée ---
+        if ratio == -1:
+            status_text = "Indisponible"
+        elif ratio == 0:
+            status_text = "Vide"
+        elif ratio < 0.5:
+            status_text = "Modérément occupée"
+        elif ratio < 0.8:
+            status_text = "Fortement occupée"
+        elif ratio < 1.0:
+            status_text = "Très fortement occupée"
+        else: # ratio >= 1.0
+            status_text = "Congestionnée"
+        # --- FIN DE LA CORRECTION ---
 
-        services_dynamic_html = ""
-        if row['Services']:
-            for service_name, client_count in row['Services'].items():
-                services_dynamic_html += f"""<div style="text-align: center; margin: 0 5px;">
-                        {service_name}<br><strong>{client_count}</strong>
-                    </div>"""
-        else:
-            services_dynamic_html = "<div>Aucun service spécifié.</div>"
-        
-        with columns_online[col_index]:
-            st.markdown(f"""
-                            <div style="
-                                background-color: {BackgroundGraphicColor}; 
-                                border: 1px solid #D5D8DC; 
-                                border-radius: 10px; 
-                                padding: 12px 16px; 
-                                margin-bottom: 10px;
-                                color: black;
-                                min-height: 170px;
-                            ">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <strong style="font-size: 16px;">{row['NomAgence']}</strong>
-                                    <div style="display: flex; align-items: center;">
-                                        <span class="status-led {row['Status']}"><span class="tooltiptext"></span></span> <span style="font-size: 14px;"></span>
-                                    </div>
-                                </div>
-                                <div style="margin-top: 10px; font-size: 14px;">
-                                    Clients en attente : <strong>{row['Clients en Attente']}</strong><br>
-                                    Capacité Maximale : <strong>{max_cap}</strong><br>
-                                    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 10px;">
-                                        {services_dynamic_html}
-                            </div>
-                            """, unsafe_allow_html=True)
-            
-    all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique().tolist()
-    offline_agencies = sorted([a for a in all_known_agencies if a not in agences_a_afficher])
+        service_details = ", ".join([
+            f"{service}: {current_attente(df_queue[df_queue['NomAgence'] == nom_agence][df_queue['NomService'] == service], nom_agence)}"
+            for service in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
+        ])
+
+        dashboard_data.append({
+            "Région": row.get("Region_x", "N/A"),
+            "Agence": nom_agence,
+            "Clients en Attente": f"{queue_now} / {max_cap}",
+            "Détail par Service": service_details or "N/A",
+            "Ratio": ratio,
+            "Statut": status_text,
+        })
+
+    if not dashboard_data:
+        st.info("Aucune agence en ligne à afficher pour les filtres sélectionnés.")
+        st.markdown("<hr>", unsafe_allow_html=True)
+        return
+
+    df_dashboard = pd.DataFrame(dashboard_data)
+    df_dashboard = df_dashboard.sort_values(by=["Région", "Ratio"], ascending=[True, False])
+
+    # --- Fonction de style (inchangée, elle utilise toujours le ratio) ---
+    def highlight_congestion(row):
+        ratio = row['Ratio']
+        if ratio >= 1.0: color, text_color = '#FF4B4B', 'white'   # Congestionnée
+        elif ratio >= 0.8: color, text_color = '#FF8C00', 'white'   # Très fortement occupée
+        elif ratio >= 0.5: color, text_color = '#FFD700', 'black'   # Fortement occupée
+        elif ratio > 0: color, text_color = '#2ECC71', 'white'    # Modérément occupée
+        elif ratio == 0: color, text_color = '#F0F0F0', 'black'   # Vide
+        else: color, text_color = '#808080', 'white'   # Indisponible (capacité 0)
+        return [f'background-color: {color}; color: {text_color}'] * len(row)
+
+    # Affichage du DataFrame stylé
+    df_to_display = df_dashboard[['Région', 'Agence', 'Clients en Attente', 'Détail par Service', 'Statut', 'Ratio']]
+    styled_df = df_to_display.style.apply(highlight_congestion, axis=1).hide(axis="index")
+
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        height=600,
+        column_config={
+            "Ratio": None,
+            "Région": st.column_config.TextColumn(width="medium"),
+            "Agence": st.column_config.TextColumn(width="large"),
+            "Détail par Service": st.column_config.TextColumn(width="medium"),
+            "Statut": st.column_config.TextColumn("Statut Actuel", width="medium"),
+        }
+    )
+
+    # Affichage des agences hors ligne (inchangé)
+    online_agency_names = df_with_regions["NomAgence"].unique()
+    all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique()
+    offline_agencies = sorted([a for a in all_known_agencies if a in st.session_state.selected_agencies and a not in online_agency_names])
+    
     if offline_agencies:
         st.subheader("Agences Hors Ligne")
-        for i in range(0, len(offline_agencies), num_cols):
-            cols = st.columns(num_cols)
-            agences_chunk = offline_agencies[i:i + num_cols]
-            for j, nom_agence in enumerate(agences_chunk):
-                with cols[j]:
-                    st.markdown(f"""<div style="background-color: #FEF2F2; border: 1px solid #F8C6C6; border-radius: 10px; padding: 12px; margin-bottom: 10px; color: black; min-height: 120px;">
-                        <strong style="font-size: 16px;">{nom_agence}</strong>
-                    </div>""", unsafe_allow_html=True)
+        st.error(", ".join(offline_agencies))
+
     st.markdown("<hr>", unsafe_allow_html=True)
+
+# def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, page_index=0, **kwargs):
+#     # Le 'id' reste le même pour que le défilement cible toujours cette section
+#     st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
+    
+#     # --- 1. Préparation des données et de la pagination ---
+#     ITEMS_PER_PAGE = 8 # Affiche 8 agences par page (grille de 4x2). Vous pouvez ajuster ce nombre.
+
+#     _, agg_global = AgenceTable(df_all, df_queue)
+#     agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
+    
+#     online_agencies = sorted(agg_global_filtered["Nom d'Agence"].unique().tolist())
+#     total_online_agencies = len(online_agencies)
+
+#     num_pages = math.ceil(total_online_agencies / ITEMS_PER_PAGE) if total_online_agencies > 0 else 1
+    
+#     # Le titre inclut maintenant la page actuelle
+#     st.header(f"{SECTIONS['supervision_monitoring']['title']} (Page {page_index + 1}/{num_pages})")
+
+#     if total_online_agencies == 0:
+#         st.info("Aucune agence en ligne à afficher pour les filtres sélectionnés.")
+#         st.markdown("<hr>", unsafe_allow_html=True)
+#         return
+
+#     # Sélectionner le sous-ensemble d'agences pour la page actuelle
+#     start_index = page_index * ITEMS_PER_PAGE
+#     end_index = start_index + ITEMS_PER_PAGE
+#     agencies_to_display = online_agencies[start_index:end_index]
+
+#     # --- 2. Affichage de la grille d'agences pour la page actuelle ---
+#     num_cols = 4 
+#     for i in range(0, len(agencies_to_display), num_cols):
+#         cols = st.columns(num_cols)
+#         row_agencies = agencies_to_display[i:i + num_cols]
+#         for j, nom_agence in enumerate(row_agencies):
+#             with cols[j]:
+#                 agence_data = agg_global_filtered[agg_global_filtered["Nom d'Agence"] == nom_agence]
+#                 if not agence_data.empty:
+#                     # Le reste de votre logique de rendu de carte reste ici, inchangée...
+#                     max_cap = agence_data['Capacité'].values[0]
+#                     queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+#                     st.markdown(f"""
+#                         <div style="background-color: #FFFFFF; border: 1px solid #D5D8DC; border-radius: 10px; padding: 12px; margin-bottom: 10px; min-height: 120px;">
+#                             <strong style="font-size: 16px;">{nom_agence}</strong>
+#                             <div style="margin-top: 10px;">Clients : <strong>{queue_now} / {max_cap}</strong></div>
+#                         </div>
+#                     """, unsafe_allow_html=True)
+
+#     st.markdown("<hr>", unsafe_allow_html=True)
     
 def render_prediction_section(df_queue_filtered, conn):
     title=SECTIONS["prediction_affluence"]['title']
