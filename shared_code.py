@@ -1687,6 +1687,7 @@ def area_graph2(data,concern='UserName',time='TempOperation',date_to_bin='Date_F
             "data": df_pivoted[agence].tolist(), # Get data for each agency from its column
             "lineStyle": {"color": colors[i % len(colors)]}, # Assign a color
             "itemStyle": {"color": colors[i % len(colors)]}, # Color for markers
+            "label": {"show": True, "position": "inside"},
             "markLine":{
             "silent": True,               # La ligne n'est pas cliquable/interactive
             "symbol": "none",             # Cache les flèches aux extrémités de la ligne
