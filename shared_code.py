@@ -1814,7 +1814,7 @@ def GraphsGlob2(df_all,titre="",color=blue_color):
             {
                 "name": 'Temps moyen', # A more descriptive series name
                 "type": 'bar',
-                # REMOVED: 'radius' is not a bar chart property
+                "label": {"show": True, "position": "inside"},
                 "data": chart_data,
                 "emphasis": {
                     "focus": 'series',
