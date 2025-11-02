@@ -77,7 +77,7 @@ SECTIONS = {
     "analyse_attente_hebdomadaire": {"title": "Analyse Attente : Tendance Journalière"},
     "supervision_monitoring": {"title": "Supervision : Monitoring Temps Réel"},
    # "prediction_affluence": {"title": "Prédiction de l'Affluence Future"},
-   "supervision_offline": {"title": "Supervision : Statut des Agences Hors Ligne"}, # <-- NOUVELLE LIGNE
+   #"supervision_offline": {"title": "Supervision : Statut des Agences Hors Ligne"}, # <-- NOUVELLE LIGNE
     # "fin_de_cycle": {"title": "Fin du Cycle"},
 }
 
@@ -479,7 +479,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
             "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
         }]
     }
-    st_echarts(options=options_heatmap, height="600px") # Augmenté la hauteur pour une meilleure visibilité
+    st_echarts(options=options_heatmap, height="700px") # Augmenté la hauteur pour une meilleure visibilité
 
     #st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -1025,7 +1025,7 @@ def render_scrolling_dashboard():
         "performance_agent_evolution_categorie": (render_agent_performance_evolution_categorie_section, {'df_all': df_all_filtered}),
         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
-         "supervision_offline": (render_supervision_offline_section, {'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}), # <-- NOUVELLE LIGNE
+        # "supervision_offline": (render_supervision_offline_section, {'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}), # <-- NOUVELLE LIGNE
         # "fin_de_cycle": (render_end_section, {}),
     }
 
