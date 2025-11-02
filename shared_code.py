@@ -1188,7 +1188,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
         "legend": {"data": df_pivoted.columns.tolist(),"top": "bottom"},
         "grid": {
             "left": "5%",
-            "right": "6%",
+            "right": "10%",
             "bottom": "10%", # Increase bottom margin for rotated labels
             "containLabel": True
         },
@@ -1313,7 +1313,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
             },
             "grid": {
                 "left": "3%",
-                "right": "6%",
+                "right": "10%",
                 "bottom": "10%",
                 "containLabel": True,
             },

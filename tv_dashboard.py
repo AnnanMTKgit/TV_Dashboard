@@ -968,10 +968,10 @@ def render_scrolling_dashboard():
     st.markdown("</div>", unsafe_allow_html=True)
         
     # Charger les données UNIQUEMENT pour la journée en cours
-    debut =datetime.strptime('2025-10-31', '%Y-%m-%d')
+    #debut =datetime.strptime('2025-10-31', '%Y-%m-%d')
     today = datetime.now().date()
     with st.spinner(f"Chargement des données ..."):
-        df_all, df_queue = load_all_data(debut, today)
+        df_all, df_queue = load_all_data(today, today)
         
         # Si aucune donnée n'est trouvée pour aujourd'hui, on arrête
         if df_all.empty:
