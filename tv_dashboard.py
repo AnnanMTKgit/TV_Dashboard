@@ -470,20 +470,30 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
     # --- Configuration ECharts ---
     options_heatmap = {'title': {"text": "Heatmap de l'Attente Moyenne par Agence et Heure", "left": "center"},"backgroundColor": BackgroundGraphicColor,
         "tooltip": {"position": "top"},
-        "grid": {"height": "80%", "top": "5%", "left": "10%", "right": "10%"}, # Ajuster les marges pour laisser de la place
+        "grid": {"height": "80%", "top": "5%", "left": "15%", "right": "10%"}, # Ajuster les marges pour laisser de la place
         
         "xAxis": {
             "type": "category",
             "data": heures_list,
-            "splitArea": {"show": True} 
+            "splitArea": {"show": True},
+            "axisLabel": {
+            "fontWeight": "bold",  # Met les étiquettes de l'axe X en gras
+            "color": 'black'
+        }
+            
         },
+        
         "yAxis": {
             "type": "category",
             "data": agences_list,
             "splitLine": {
                 "show": True,
                 "lineStyle": {"color": '#ccc', "width": 1, "type": 'solid'}
-            }
+            },
+            "axisLabel": {
+            "fontWeight": "bold" ,
+              "color": 'black'# Met les étiquettes de l'axe X en gras
+        }
         },
         
         # --- DÉBUT DE LA CORRECTION ---
