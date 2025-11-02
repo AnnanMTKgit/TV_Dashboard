@@ -1728,7 +1728,7 @@ def area_graph2(data,concern='UserName',time='TempOperation',date_to_bin='Date_F
 
 #################################################
 
-def top_agence_freq(df_all,df_queue,title,color=[green_color,blue_clair_color]): 
+def top_agence_freq(df_all,df_queue,title,color=[green_color,blue_clair_color],height=500): 
     _,agg=AgenceTable(df_all,df_queue)
     agg=agg[["Nom d'Agence",title[0],title[1]]]
     
@@ -1749,7 +1749,7 @@ def top_agence_freq(df_all,df_queue,title,color=[green_color,blue_clair_color]):
     
     top_counts = pd.concat([top_counts0, top_counts1], axis=0)
     
-    fig = px.funnel(top_counts, x='Total', y="Nom d'Agence",color='Statut',color_discrete_sequence=color)
+    fig = px.funnel(top_counts, x='Total', y="Nom d'Agence",color='Statut',color_discrete_sequence=color,height=height)
     fig.update_layout(title={
         'text': f'{title[0]} vs {title[1]}',
         'x': 0.5,  # Center the title
@@ -1982,7 +1982,12 @@ def analyse_activity(data, type: str, concern: str, titre="Nombre de type d'opé
         data = [{"value": int(row[count_col]), "name": row[type_col]} for _, row in df.iterrows()]
         return {
             "title": {"text": f"{service_name}","left":"center"},"backgroundColor":BackgroundGraphicColor,
-            "tooltip": {"trigger": "item", "formatter": '{b}: {c} ({d}%)'},
+            "tooltip": {"trigger": "item", "formatter": '{b}: {c} ({d}%)'},"grid": {
+        "left": "3%",
+        "right": "4%",
+        "bottom": "10%", # Increase bottom margin for rotated labels
+        "containLabel": True
+    },
             
             "series": [{"name": service_name, "type": 'pie', "radius": ['20%', '70%'],"label": {"show": True, "formatter": "{b}\n{c}"},
                         "roseType": 'area', "itemStyle": {"borderRadius": 8}, "data": data}]

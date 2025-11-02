@@ -62,8 +62,8 @@ def render_agency_analysis_section(df_all, df_queue):
     st.header(SECTIONS[ANCHORS[2]]['title'])
     st.subheader("Performance par Catégorie et Agences les Plus Lentes")
     c1, c2 = st.columns(2)
-    with c1: st_echarts(options=stacked_chart2(df_all, 'TempsAttenteReel', 'NomAgence', "Catégorisation du Temps d'Attente"), height="500px")
-    with c2: st_echarts(options=area_graph2(df_all, concern='NomAgence', time='TempOperation', date_to_bin='Date_Fin', seuil=5, title="Top 5 - Temps d'Opération"), height="500px")
+    with c1: st_echarts(options=stacked_chart2(df_all, 'TempsAttenteReel', 'NomAgence', "Catégorisation du Temps d'Attente"), height="800px")
+    with c2: st_echarts(options=area_graph2(df_all, concern='NomAgence', time='TempOperation', date_to_bin='Date_Fin', seuil=5, title="Top 5 - Temps d'Opération"), height="800px")
     st.subheader("Agences les Plus Fréquentées")
     c3, c4 = st.columns(2)
     with c3: st.plotly_chart(top_agence_freq(df_all, df_queue, title=['Total Tickets', 'Total Traités']), use_container_width=True)
@@ -91,8 +91,8 @@ def render_agent_performance_section(df_all):
     st.header(SECTIONS[ANCHORS[4]]['title'])
     st.subheader("Volume et Temps Moyen par Opération")
     c1, c2 = st.columns(2)
-    with c1: st_echarts(options=create_pie_chart2(df_all, title='Opérations Traitées'), height="500px", key='pie_agent')
-    with c2: st_echarts(options=create_bar_chart2(df_all, status='Traitée'), height="500px", key="bar_agent")
+    with c1: st_echarts(options=create_pie_chart2(df_all, title='Opérations Traitées'), height="800px", key='pie_agent')
+    with c2: st_echarts(options=create_bar_chart2(df_all, status='Traitée'), height="800px", key="bar_agent")
     st.subheader("Évolution et Performance par Catégorie")
     c3, c4 = st.columns(2)
     with c3: st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
@@ -115,14 +115,14 @@ def render_wait_time_analysis_section(df_queue):
                 max_charge = charge_journaliere_df['Charge_Journaliere'].max()
                 bar_data = [{"value": round(r['Charge_Journaliere'], 2), "itemStyle": {"color": "#546E7A"} if r['Charge_Journaliere'] == max_charge else {"color": "#6c8dff"}} for _, r in charge_journaliere_df.iterrows()]
                 options_bar = {"tooltip": {"trigger": "axis"}, "xAxis": {"type": "category", "data": charge_journaliere_df['Jour_semaine'].tolist()}, "yAxis": {"type": "value"}, "series": [{"type": "bar", "data": bar_data}]}
-                st_echarts(options=options_bar, height="500px")
+                st_echarts(options=options_bar, height="800px")
         with c2:
             st.subheader("Heatmap de la Charge Moyenne")
             heures_int = sorted(rapport_moyen['Heure_jour'].unique())
             jours_a_afficher_inverse = rapport_moyen['Jour_semaine'].cat.categories[::-1]
             heatmap_data = [[x, y, round(float(rapport_moyen[(rapport_moyen['Jour_semaine'] == jour) & (rapport_moyen['Heure_jour'] == heure)]['nb_attente_moyen'].values[0]), 2)] for y, jour in enumerate(jours_a_afficher_inverse) for x, heure in enumerate(heures_int) if not rapport_moyen[(rapport_moyen['Jour_semaine'] == jour) & (rapport_moyen['Heure_jour'] == heure)].empty]
             options_heatmap = {"tooltip": {}, "xAxis": {"type": "category", "data": [f"{h:02d}h" for h in heures_int]}, "yAxis": {"type": "category", "data": jours_a_afficher_inverse.tolist()}, "visualMap": {"min": float(rapport_moyen['nb_attente_moyen'].min()), "max": float(rapport_moyen['nb_attente_moyen'].max()), "calculable": True, "orient": "horizontal", "left": "center", "bottom": "5%"}, "series": [{"type": "heatmap", "data": heatmap_data, "label": {"show": True}}]}
-            st_echarts(options=options_heatmap, height="500px")
+            st_echarts(options=options_heatmap, height="800px")
     st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions):
@@ -414,3 +414,94 @@ render_functions = {
         "prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
         "fin_de_cycle": (render_end_section, {}),
     }
+
+def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, **kwargs):
+    st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
+    st.header(SECTIONS["supervision_monitoring"]['title'])
+
+    # --- 1. Préparation des données (inchangée) ---
+    _, agg_global = AgenceTable(df_all, df_queue)
+    agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
+    agg_global_sorted = agg_global_filtered.sort_values(by='Nbs de Clients en Attente', ascending=False)
+    
+    online_agencies = agg_global_sorted["Nom d'Agence"].unique().tolist()
+    
+    if not online_agencies:
+        st.info("Aucune agence en ligne à afficher.")
+        st.markdown("<hr>", unsafe_allow_html=True)
+        return
+
+    # --- 2. Injection du CSS pour les LEDs et nos nouvelles cartes-métriques ---
+    try:
+        with open("led.css") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error("Le fichier 'led.css' est manquant.")
+        
+    st.markdown("""
+        <style>
+            .metric-card {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding: 1rem;
+                text-align: center;
+                height: 100%;
+            }
+            .metric-label {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                font-size: 1.1em;
+                font-weight: bold;
+                margin-bottom: 0.5rem;
+            }
+            .metric-value {
+                font-size: 2.8em;
+                font-weight: bold;
+                color: #013447;
+                line-height: 1.2;
+            }
+            .metric-delta {
+                font-size: 0.9em;
+                color: #555;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- 3. Création du conteneur déroulant et de la grille ---
+    with st.container(height=700): 
+        NUM_COLS = 4
+        
+        for i in range(0, len(online_agencies), NUM_COLS):
+            cols = st.columns(NUM_COLS, gap="large")
+            row_agencies = online_agencies[i:i + NUM_COLS]
+            
+            for j, nom_agence in enumerate(row_agencies):
+                with cols[j]:
+                    agence_data = agg_global_sorted[agg_global_sorted["Nom d'Agence"] == nom_agence]
+                    if not agence_data.empty:
+                        max_cap = int(agence_data['Capacité'].values[0])
+                        queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+                        status_class = get_status_info(queue_now, capacite=max_cap)
+                        
+                        services_html = " | ".join([
+                            f"{s}: {current_attente(df_queue[(df_queue['NomAgence'] == nom_agence) & (df_queue['NomService'] == s)], nom_agence)}" 
+                            for s in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
+                        ])
+                        
+                        # --- Construction de la carte-métrique entièrement en HTML ---
+                        st.markdown(f"""
+                            <div class="metric-card">
+                                <div class="metric-label">
+                                    <span class="status-led {status_class}"></span>
+                                    <span>{nom_agence}</span>
+                                </div>
+                                <div class="metric-value">{queue_now}</div>
+                                <div class="metric-delta">Capacité: {max_cap}</div>
+                                <div class="metric-delta">{services_html or "Aucun service actif"}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)

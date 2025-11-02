@@ -16,6 +16,7 @@ except ImportError:
 st.set_page_config(page_title="Marlodj TV Dashboard", layout="wide", page_icon="📺")
 
 
+
 def load_base_css():
     """Charge les CSS qui s'appliquent à TOUTE l'application."""
     try:
@@ -34,29 +35,25 @@ def inject_scrolling_css():
             }
             /* Cible le conteneur principal de la vue Streamlit pour le transformer en conteneur de défilement */
             [data-testid="stAppViewContainer"] > .main {
-                padding: 0!important;
+                padding:0 !important;
                 margin: 0;
-                height: 100vh;
+                height: 100vh;;
                 overflow-y: scroll;
                 scroll-snap-type: y mandatory;
                 scroll-behavior: smooth;
-            }
-            /* Chaque section est un point d'arrêt plein écran */
-            .main [data-testid="stVerticalBlock"] {
-                scroll-snap-align: start;
-                min-height: 90vh;
-                display: flex;
-                flex-direction: column;
-                justify-content:  center; /* Distribue l'espace verticalement */
+                
+}
             }
             
-            /* --- NOUVELLE RÈGLE POUR RÉDUIRE L'ESPACE SOUS LES TITRES --- */
-            /* Cible tous les titres (h1, h2, h3) qui sont à l'intérieur d'un bloc vertical */
-            .main [data-testid="stVerticalBlock"] h1,
-            .main [data-testid="stVerticalBlock"] h2,
-            .main [data-testid="stVerticalBlock"] h3 {
-                margin-bottom: 0.25rem !important; /* Réduit la marge inférieure. '!important' pour forcer la priorité */
+            .main [data-testid="stVerticalBlock"] {
+                scroll-snap-align: start;
+                height: 100vh;;
+                display: flex;
+                flex-direction: column;
+                /*justify-content:  center; */
+                padding: 0rem 2rem 4rem 2rem !important;
             }
+            
         </style>
     """, unsafe_allow_html=True)
 # Initialisation de l'état de session
@@ -84,14 +81,7 @@ SECTIONS = {
     # "fin_de_cycle": {"title": "Fin du Cycle"},
 }
 
-st.markdown("""
-    <style>
-    /* Cible les éléments avec un ID (nos ancres) */
-    [id] {
-        scroll-margin-top: 80px; /* Ajustez cette valeur selon la hauteur de votre en-tête */
-    }
-    </style>
-""", unsafe_allow_html=True)
+
 def scroll_to_anchor(anchor_id):
     """
     Injecte du JS qui attend que l'ancre soit disponible, puis fait défiler la page.
@@ -163,7 +153,7 @@ def kpi_circle_chart(label, value, max_value, color_scheme):
     )
     
     # Le cercle de progression
-    arc = base.mark_arc(innerRadius=70, cornerRadius=10)
+    arc = base.mark_arc(innerRadius=90, cornerRadius=10)
 
     # Le texte de la valeur au centre
     text_value = alt.Chart(pd.DataFrame({'value': [f"{value:,.0f}"]})).mark_text(
@@ -196,6 +186,7 @@ def render_kpis_and_map_section(agg_global, df_all_filtered):
     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
     
     kpi_rh = df_all_filtered.groupby("NomService")["UserName"].nunique().reset_index().rename(columns={"UserName": "Nombre_Agents"})
+   
     kpi_cols = st.columns(6)
     
     with kpi_cols[0]:
@@ -236,7 +227,7 @@ def render_kpis_and_map_section(agg_global, df_all_filtered):
     else:
         st.info("Aucune donnée sur les ressources par service disponible.")
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
 # def render_kpis_and_map_section(agg_global,df_all_filtered):
     
 #     st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True)
@@ -309,7 +300,7 @@ def render_kpis_and_map_section(agg_global, df_all_filtered):
 #                 </div>
 #             """, unsafe_allow_html=True)
 
-#     st.markdown("<hr>", unsafe_allow_html=True)
+#     #st.markdown("<hr>", unsafe_allow_html=True)
 # def render_kpis_and_map_section(agg_global, **kwargs):
 #     # L'ancre et le titre restent, mais ils sont maintenant gérés par la mise en page Flexbox
 #     st.markdown(f"<h1 style='text-align: center;'>{SECTIONS['kpis_et_carte']['title']}</h1>", unsafe_allow_html=True)
@@ -350,7 +341,7 @@ def render_top_sevice(df_all):
         
         st_echarts(options=figures_activity[1], height="600px", key="service_activity_2")
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
       
 
 
@@ -364,10 +355,10 @@ def render_agency_analysis_performance_section(df_all):
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        st_echarts(options=stacked_chart2(df_all, 'TempsAttenteReel', 'NomAgence', "Catégorisation du Temps d'Attente"), height="500px")
+        st_echarts(options=stacked_chart2(df_all, 'TempsAttenteReel', 'NomAgence', "Catégorisation du Temps d'Attente"), height="600px")
     with c2:
-        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'NomAgence', "Catégorisation du Temps des Opérations"), height="500px")
-    st.markdown("<hr>", unsafe_allow_html=True)
+        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'NomAgence', "Catégorisation du Temps des Opérations"), height="600px")
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agency_analysis_frequentation_section(df_all, df_queue):
     st.markdown('<div id="analyse_agence_frequentation"></div>', unsafe_allow_html=True)
@@ -378,7 +369,7 @@ def render_agency_analysis_frequentation_section(df_all, df_queue):
         st.plotly_chart(top_agence_freq(df_all, df_queue, title=['Total Tickets', 'Total Traités']), use_container_width=True)
     with c2:
         st.plotly_chart(top_agence_freq(df_all, df_queue, title=['Total Tickets', 'Total Rejetées'], color=[green_color, blue_color]), use_container_width=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_service_analysis_section(df_all, df_queue):
     st.markdown('<div id="analyse_service"></div>', unsafe_allow_html=True)
@@ -390,7 +381,7 @@ def render_service_analysis_section(df_all, df_queue):
     with col2:
         st_echarts(options=Top10_Type(df_queue, title="Top 10 Opérations"), height="600px")
     
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
 # --- NOUVELLES FONCTIONS DE RENDU POUR LA PERFORMANCE DES AGENTS ---
 
@@ -400,10 +391,10 @@ def render_agent_performance_volume_temps_section(df_all):
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        st_echarts(options=create_pie_chart2(df_all, title='Traitée'), height="500px", key='pie_agent')
+        st_echarts(options=create_pie_chart2(df_all, title='Traitée'), height="600px", key='pie_agent')
     with c2:
-        st_echarts(options=create_bar_chart2(df_all, status='Traitée'), height="500px", key="bar_agent")
-    st.markdown("<hr>", unsafe_allow_html=True)
+        st_echarts(options=create_bar_chart2(df_all, status='Traitée'), height="600px", key="bar_agent")
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_agent_performance_evolution_categorie_section(df_all):
     st.markdown('<div id="performance_agent_evolution_categorie"></div>', unsafe_allow_html=True)
@@ -413,8 +404,8 @@ def render_agent_performance_evolution_categorie_section(df_all):
     with c1:
         st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
     with c2:
-        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="500px")
-    st.markdown("<hr>", unsafe_allow_html=True)
+        st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="600px")
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_wait_time_analysis_section(df_queue, **kwargs):
     st.markdown('<div id="analyse_attente_hebdomadaire"></div>', unsafe_allow_html=True)
@@ -427,7 +418,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
     
     if rapport_pd.empty:
         st.warning("Aucune donnée d'attente disponible pour aujourd'hui.")
-        st.markdown("<hr>", unsafe_allow_html=True)
+        #st.markdown("<hr>", unsafe_allow_html=True)
         return
         
     rapport_pd = rapport_pd[rapport_pd['Heure'] <= pd.Timestamp.now()].copy()
@@ -488,109 +479,109 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
             "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
         }]
     }
-    st_echarts(options=options_heatmap, height="800px") # Augmenté la hauteur pour une meilleure visibilité
+    st_echarts(options=options_heatmap, height="600px") # Augmenté la hauteur pour une meilleure visibilité
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
-def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, **kwargs):
-    st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
-    title=SECTIONS["supervision_monitoring"]['title']
-    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-    # --- 1. Préparation des données ---
-    _, agg_global = AgenceTable(df_all, df_queue)
-    agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
+# def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, **kwargs):
+#     st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
+#     title=SECTIONS["supervision_monitoring"]['title']
+#     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
+#     # --- 1. Préparation des données ---
+#     _, agg_global = AgenceTable(df_all, df_queue)
+#     agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
     
-    df_with_regions = pd.merge(
-        agg_global_filtered,
-        df_agencies_regions[['NomAgence', 'Region']],
-        left_on="Nom d'Agence",
-        right_on="NomAgence",
-        how="left"
-    )
+#     df_with_regions = pd.merge(
+#         agg_global_filtered,
+#         df_agencies_regions[['NomAgence', 'Region']],
+#         left_on="Nom d'Agence",
+#         right_on="NomAgence",
+#         how="left"
+#     )
   
-    dashboard_data = []
+#     dashboard_data = []
     
-    for _, row in df_with_regions.iterrows():
-        nom_agence = row["Nom d'Agence"]
-        queue_now = row['Nbs de Clients en Attente']
-        max_cap = row['Capacité']
-        ratio = queue_now / max_cap if max_cap > 0 else -1 # Utiliser -1 pour le cas où la capacité est 0
+#     for _, row in df_with_regions.iterrows():
+#         nom_agence = row["Nom d'Agence"]
+#         queue_now = row['Nbs de Clients en Attente']
+#         max_cap = row['Capacité']
+#         ratio = queue_now / max_cap if max_cap > 0 else -1 # Utiliser -1 pour le cas où la capacité est 0
         
-        # --- DÉBUT DE LA CORRECTION : Logique de statut personnalisée ---
-        if ratio == -1:
-            status_text = "Indisponible"
-        elif ratio == 0:
-            status_text = "Vide"
-        elif ratio < 0.5:
-            status_text = "Modérément occupée"
-        elif ratio < 0.8:
-            status_text = "Fortement occupée"
-        elif ratio < 1.0:
-            status_text = "Très fortement occupée"
-        else: # ratio >= 1.0
-            status_text = "Congestionnée"
-        # --- FIN DE LA CORRECTION ---
+#         # --- DÉBUT DE LA CORRECTION : Logique de statut personnalisée ---
+#         if ratio == -1:
+#             status_text = "Indisponible"
+#         elif ratio == 0:
+#             status_text = "Vide"
+#         elif ratio < 0.5:
+#             status_text = "Modérément occupée"
+#         elif ratio < 0.8:
+#             status_text = "Fortement occupée"
+#         elif ratio < 1.0:
+#             status_text = "Très fortement occupée"
+#         else: # ratio >= 1.0
+#             status_text = "Congestionnée"
+#         # --- FIN DE LA CORRECTION ---
 
-        service_details = ", ".join([
-            f"{service}: {current_attente(df_queue[df_queue['NomAgence'] == nom_agence][df_queue['NomService'] == service], nom_agence)}"
-            for service in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
-        ])
+#         service_details = ", ".join([
+#             f"{service}: {current_attente(df_queue[df_queue['NomAgence'] == nom_agence][df_queue['NomService'] == service], nom_agence)}"
+#             for service in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
+#         ])
 
-        dashboard_data.append({
-            "Région": row.get("Region_x", "N/A"),
-            "Agence": nom_agence,
-            "Clients en Attente": f"{queue_now} / {max_cap}",
-            "Détail par Service": service_details or "N/A",
-            "Ratio": ratio,
-            "Statut": status_text,
-        })
+#         dashboard_data.append({
+#             "Région": row.get("Region_x", "N/A"),
+#             "Agence": nom_agence,
+#             "Clients en Attente": f"{queue_now} / {max_cap}",
+#             "Détail par Service": service_details or "N/A",
+#             "Ratio": ratio,
+#             "Statut": status_text,
+#         })
 
-    if not dashboard_data:
-        st.info("Aucune agence en ligne à afficher pour les filtres sélectionnés.")
-        st.markdown("<hr>", unsafe_allow_html=True)
-        return
+#     if not dashboard_data:
+#         st.info("Aucune agence en ligne à afficher pour les filtres sélectionnés.")
+#         #st.markdown("<hr>", unsafe_allow_html=True)
+#         return
 
-    df_dashboard = pd.DataFrame(dashboard_data)
-    df_dashboard = df_dashboard.sort_values(by=["Région", "Ratio"], ascending=[True, False])
-    df_dashboard = df_dashboard.reset_index(drop=True)
-    # --- Fonction de style (inchangée, elle utilise toujours le ratio) ---
-    def highlight_congestion(row):
-        ratio = row['Ratio']
-        if ratio >= 1.0: color, text_color = '#FF4B4B', 'white'   # Congestionnée
-        elif ratio >= 0.8: color, text_color = '#FF8C00', 'white'   # Très fortement occupée
-        elif ratio >= 0.5: color, text_color = '#FFD700', 'black'   # Fortement occupée
-        elif ratio > 0: color, text_color = '#2ECC71', 'white'    # Modérément occupée
-        elif ratio == 0: color, text_color = '#F0F0F0', 'black'   # Vide
-        else: color, text_color = '#808080', 'white'   # Indisponible (capacité 0)
-        return [f'background-color: {color}; color: {text_color}'] * len(row)
+#     df_dashboard = pd.DataFrame(dashboard_data)
+#     df_dashboard = df_dashboard.sort_values(by=["Région", "Ratio"], ascending=[True, False])
+#     df_dashboard = df_dashboard.reset_index(drop=True)
+#     # --- Fonction de style (inchangée, elle utilise toujours le ratio) ---
+#     def highlight_congestion(row):
+#         ratio = row['Ratio']
+#         if ratio >= 1.0: color, text_color = '#FF4B4B', 'white'   # Congestionnée
+#         elif ratio >= 0.8: color, text_color = '#FF8C00', 'white'   # Très fortement occupée
+#         elif ratio >= 0.5: color, text_color = '#FFD700', 'black'   # Fortement occupée
+#         elif ratio > 0: color, text_color = '#2ECC71', 'white'    # Modérément occupée
+#         elif ratio == 0: color, text_color = '#F0F0F0', 'black'   # Vide
+#         else: color, text_color = '#808080', 'white'   # Indisponible (capacité 0)
+#         return [f'background-color: {color}; color: {text_color}'] * len(row)
 
-    # Affichage du DataFrame stylé
-    df_to_display = df_dashboard[['Région', 'Agence', 'Clients en Attente', 'Détail par Service', 'Statut', 'Ratio']]
-    styled_df = df_to_display.style.apply(highlight_congestion, axis=1).hide(axis="index")
+#     # Affichage du DataFrame stylé
+#     df_to_display = df_dashboard[['Région', 'Agence', 'Clients en Attente', 'Détail par Service', 'Statut', 'Ratio']]
+#     styled_df = df_to_display.style.apply(highlight_congestion, axis=1).hide(axis="index")
 
-    st.dataframe(
-        styled_df,
-        use_container_width=True,
-        height=600,
-        column_config={
-            "Ratio": None,
-            "Région": st.column_config.TextColumn(width="medium"),
-            "Agence": st.column_config.TextColumn(width="large"),
-            "Détail par Service": st.column_config.TextColumn(width="medium"),
-            "Statut": st.column_config.TextColumn("Statut Actuel", width="medium"),
-        }
-    )
+#     st.dataframe(
+#         styled_df,
+#         use_container_width=True,
+#         height=600,
+#         column_config={
+#             "Ratio": None,
+#             "Région": st.column_config.TextColumn(width="medium"),
+#             "Agence": st.column_config.TextColumn(width="large"),
+#             "Détail par Service": st.column_config.TextColumn(width="medium"),
+#             "Statut": st.column_config.TextColumn("Statut Actuel", width="medium"),
+#         }
+#     )
 
-    # Affichage des agences hors ligne (inchangé)
-    online_agency_names = df_with_regions["NomAgence"].unique()
-    all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique()
-    offline_agencies = sorted([a for a in all_known_agencies if a in st.session_state.selected_agencies and a not in online_agency_names])
+#     # Affichage des agences hors ligne (inchangé)
+#     online_agency_names = df_with_regions["NomAgence"].unique()
+#     all_known_agencies = df_agencies_regions['NomAgence'].dropna().unique()
+#     offline_agencies = sorted([a for a in all_known_agencies if a in st.session_state.selected_agencies and a not in online_agency_names])
     
-    if offline_agencies:
-        st.subheader("Agences Hors Ligne")
-        st.error(", ".join(offline_agencies))
+#     if offline_agencies:
+#         st.subheader("Agences Hors Ligne")
+#         st.error(", ".join(offline_agencies))
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+#     #st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_supervision_offline_section(df_queue, df_agencies_regions, **kwargs):
     st.markdown('<div id="supervision_offline"></div>', unsafe_allow_html=True)
@@ -603,7 +594,7 @@ def render_supervision_offline_section(df_queue, df_agencies_regions, **kwargs):
     offline_agencies_df=offline_agencies_df.dropna(subset=['NomAgence']).reset_index(drop=True)
     if offline_agencies_df.empty:
         st.success("Toutes les agences sélectionnées sont actuellement en ligne et rapportent des données.")
-        st.markdown("<hr>", unsafe_allow_html=True)
+        #st.markdown("<hr>", unsafe_allow_html=True)
         return
 
     # --- 2. Préparation du DataFrame pour l'affichage ---
@@ -643,7 +634,145 @@ def render_supervision_offline_section(df_queue, df_agencies_regions, **kwargs):
         }
     )
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
+
+
+
+def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, **kwargs):
+    """
+    Affiche la grille de supervision avec une pagination interne gérée par session_state.
+    
+    Cette fonction est conçue pour être "pilotée" par une boucle de défilement externe :
+    - Elle affiche la page de cartes correspondant à l'index stocké dans st.session_state.
+    - Elle retourne le nombre total de pages calculé pour que le pilote sache quoi faire.
+    """
+    # Ancre HTML pour que le défilement principal puisse cibler cette section
+    st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
+
+    # --- 1. GESTION DE LA PAGE ACTUELLE ---
+    # On utilise st.session_state pour mémoriser la page affichée entre chaque rafraîchissement
+    if 'monitoring_page_index' not in st.session_state:
+        st.session_state.monitoring_page_index = 0
+    page_index = st.session_state.monitoring_page_index
+
+    # --- 2. PARAMÈTRES DE LA PAGINATION ---
+    # Affiche 3 lignes de 5 agences, soit 15 par "diapositive"
+    ITEMS_PER_PAGE = 12 
+    NUM_COLS = 4
+
+    # --- 3. PRÉPARATION DES DONNÉES ---
+    _, agg_global = AgenceTable(df_all, df_queue)
+    agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
+    agg_global_sorted = agg_global_filtered.sort_values(by='Nbs de Clients en Attente', ascending=False)
+    
+    online_agencies = agg_global_sorted["Nom d'Agence"].unique().tolist()
+    total_online_agencies = len(online_agencies)
+
+    # Calculer le nombre total de pages nécessaires pour afficher toutes les agences
+    num_pages = math.ceil(total_online_agencies / ITEMS_PER_PAGE) if total_online_agencies > 0 else 1
+
+    # --- 4. AFFICHAGE DU TITRE DYNAMIQUE ---
+    title = SECTIONS["supervision_monitoring"]['title']
+    t=f"{title} (Page {page_index + 1}/{num_pages})"
+    st.markdown(f"<h1 style='text-align: center;'>{t}</h1>", unsafe_allow_html=True)
+    # st.header(f"{title} (Page {page_index + 1}/{num_pages})")
+
+    # Cas où il n'y a aucune agence à afficher
+    if not online_agencies:
+        st.info("Aucune agence en ligne à afficher pour les filtres sélectionnés.")
+        #st.markdown("<hr>", unsafe_allow_html=True)
+        # On retourne 1 car il y a techniquement une page (vide) à afficher
+        return 1
+
+    # --- 5. SÉLECTION DES AGENCES POUR LA PAGE ACTUELLE ---
+    # C'est ici que la pagination a lieu : on ne prend qu'un "morceau" de la liste
+    start_index = page_index * ITEMS_PER_PAGE
+    end_index = start_index + ITEMS_PER_PAGE
+    agencies_to_display = online_agencies[start_index:end_index]
+
+    # --- 6. INJECTION DU CSS POUR LES CARTES ET LES LEDS ---
+    try:
+        with open("led.css") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error("Le fichier 'led.css' est manquant.")
+        
+    st.markdown("""
+        <style>
+            .metric-card {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding: 1rem;
+                text-align: center;
+                height: 100%;
+            }
+            .metric-label {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                font-size: 1.1em;
+                font-weight: bold;
+                margin-bottom: 0.5rem;
+            }
+            .metric-value {
+                font-size: 2.8em;
+                font-weight: bold;
+                color: #013447;
+                line-height: 1.2;
+            }
+            .metric-delta {
+                font-size: 0.9em;
+                color: #555;
+                font-weight: bold;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- 7. AFFICHAGE DE LA GRILLE POUR LA PAGE SÉLECTIONNÉE ---
+    for i in range(0, len(agencies_to_display), NUM_COLS):
+        cols = st.columns(NUM_COLS, gap="large")
+        # On itère sur le sous-ensemble `agencies_to_display`, pas sur la liste complète
+        row_agencies = agencies_to_display[i:i + NUM_COLS]
+        
+        for j, nom_agence in enumerate(row_agencies):
+            with cols[j]:
+                agence_data = agg_global_sorted[agg_global_sorted["Nom d'Agence"] == nom_agence]
+                
+                if not agence_data.empty:
+                    max_cap = int(agence_data['Capacité'].values[0])
+                    queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+                    status_class = get_status_info(queue_now, capacite=max_cap)
+                    
+                    services_html = " | ".join([
+                        f"{s}: {current_attente(df_queue[(df_queue['NomAgence'] == nom_agence) & (df_queue['NomService'] == s)], nom_agence)}" 
+                        for s in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
+                    ])
+                if not agence_data.empty:
+                    max_cap = int(agence_data['Capacité'].values[0])
+                    queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+                    # La fonction get_status_info est supposée exister dans votre code
+                    status_class = get_status_info(queue_now, capacite=max_cap)
+                    
+                    # Construction de la carte-métrique
+                    st.markdown(f"""
+                            <div class="metric-card">
+                                <div class="metric-label">
+                                    <span class="status-led {status_class}"></span>
+                                    <span>{nom_agence}</span>
+                                </div>
+                                <div class="metric-value">{queue_now}</div>
+                                <div class="metric-delta">Capacité: {max_cap}</div>
+                                <div class="metric-delta">{services_html or "Aucun service actif"}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+    #st.markdown("<hr>", unsafe_allow_html=True)
+
+    # --- 8. RETOUR DE L'INFORMATION CRUCIALE ---
+    # On retourne le nombre total de pages au "cerveau" (render_scrolling_dashboard)
+    return num_pages
 # def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions, page_index=0, **kwargs):
 #     # Le 'id' reste le même pour que le défilement cible toujours cette section
 #     st.markdown('<div id="supervision_monitoring"></div>', unsafe_allow_html=True)
@@ -664,7 +793,7 @@ def render_supervision_offline_section(df_queue, df_agencies_regions, **kwargs):
 
 #     if total_online_agencies == 0:
 #         st.info("Aucune agence en ligne à afficher pour les filtres sélectionnés.")
-#         st.markdown("<hr>", unsafe_allow_html=True)
+#         #st.markdown("<hr>", unsafe_allow_html=True)
 #         return
 
 #     # Sélectionner le sous-ensemble d'agences pour la page actuelle
@@ -691,7 +820,7 @@ def render_supervision_offline_section(df_queue, df_agencies_regions, **kwargs):
 #                         </div>
 #                     """, unsafe_allow_html=True)
 
-#     st.markdown("<hr>", unsafe_allow_html=True)
+#     #st.markdown("<hr>", unsafe_allow_html=True)
     
 def render_prediction_section(df_queue_filtered, conn):
     title=SECTIONS["prediction_affluence"]['title']
@@ -743,7 +872,7 @@ def render_prediction_section(df_queue_filtered, conn):
             st.error("Impossible de générer les prédictions.")
     else:
         st.info("Les prédictions ne sont disponibles que si la date de fin sélectionnée est aujourd'hui.")
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
 
 def render_end_section():
     st.markdown('<div id="fin_de_cycle"></div>', unsafe_allow_html=True)
@@ -856,13 +985,16 @@ def render_scrolling_dashboard():
     if st.button("⏹️ Arrêter et Reconfigurer"):
         st.session_state.view_mode = 'config'
         st.session_state.scrolling_active = False
+        st.session_state.display_state = 'show_content' # Important de réinitialiser
         st.rerun()
+        
     st.markdown("</div>", unsafe_allow_html=True)
         
     # Charger les données UNIQUEMENT pour la journée en cours
+    debut =datetime.strptime('2025-10-31', '%Y-%m-%d')
     today = datetime.now().date()
     with st.spinner(f"Chargement des données ..."):
-        df_all, df_queue = load_all_data(today, today)
+        df_all, df_queue = load_all_data(debut, today)
         
         # Si aucune donnée n'est trouvée pour aujourd'hui, on arrête
         if df_all.empty:
@@ -878,6 +1010,10 @@ def render_scrolling_dashboard():
         
         _, agence_global, _, _ = AgenceTable2(df_all_filtered, df_queue_filtered)
     
+
+    # --- CRÉATION DU CONTENEUR TAMPON ---
+    # On crée UN SEUL espace réservé au début.
+    placeholder = st.empty()
     # Dictionnaire des fonctions de rendu (inchangé)
     render_functions = {
         "kpis_et_carte": (render_kpis_and_map_section,  {'agg_global': agence_global, 'df_all_filtered': df_all_filtered}),
@@ -889,32 +1025,63 @@ def render_scrolling_dashboard():
         "performance_agent_evolution_categorie": (render_agent_performance_evolution_categorie_section, {'df_all': df_all_filtered}),
         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
-        "supervision_offline": (render_supervision_offline_section, {'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}), # <-- NOUVELLE LIGNE
+         "supervision_offline": (render_supervision_offline_section, {'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}), # <-- NOUVELLE LIGNE
         # "fin_de_cycle": (render_end_section, {}),
     }
 
     enabled_anchors = [sec_id for sec_id, config in st.session_state.section_config.items() if config['enabled']]
     
-    # --- NOUVELLE LOGIQUE DE RENDU SIMPLIFIÉE ---
-    # On boucle et on appelle simplement les fonctions. Le CSS fait le reste.
-    for anchor in enabled_anchors:
-        if anchor in render_functions:
-            func, kwargs = render_functions[anchor]
-            # Chaque appel de fonction crée un nouveau bloc vertical que notre CSS va cibler
-            func(**kwargs)
-            
-    # --- LOGIQUE DE DÉFILEMENT INCHANGÉE ---
-    if not enabled_anchors:
-        st.warning("Aucune section n'est activée. Retour à la configuration."); time.sleep(3)
-        st.session_state.view_mode = 'config'; st.session_state.scrolling_active = False; st.rerun()
-    
+    # 1. On détermine quelle est la SEULE section à afficher
+    # 1. Déterminer quelle section afficher
     current_anchor_id = enabled_anchors[st.session_state.current_section_index]
-    scroll_to_anchor(current_anchor_id) # Le JS déclenche le défilement
     
-    time.sleep(st.session_state.get('scroll_duration', 15))
-    
-    st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
-    st.rerun()
+    # 2. Utiliser le conteneur pour afficher la section
+    # À chaque rerun, le placeholder est d'abord vidé avant d'être rempli.
+    if st.session_state.display_state == 'show_content':
+        
+        # 1. On affiche la section actuelle dans le placeholder
+        with placeholder.container():
+            current_anchor_id = enabled_anchors[st.session_state.current_section_index]
+            func, kwargs = render_functions[current_anchor_id]
+            
+            # La logique de rendu et de pagination du monitoring reste la même
+            total_pages_monitoring = 1
+            if current_anchor_id == "supervision_monitoring":
+                total_pages_monitoring = func(**kwargs)
+            else:
+                func(**kwargs)
+
+        # 2. On attend la durée de visualisation
+        time.sleep(st.session_state.get('scroll_duration', 15))
+
+        # 3. ON PRÉPARE LE PASSAGE À LA SECTION SUIVANTE (logique inchangée)
+        current_anchor_id = enabled_anchors[st.session_state.current_section_index]
+        if current_anchor_id == "supervision_monitoring":
+            is_last_page = (st.session_state.monitoring_page_index >= total_pages_monitoring - 1)
+            if is_last_page:
+                st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
+                st.session_state.monitoring_page_index = 0
+            else:
+                st.session_state.monitoring_page_index += 1
+        else:
+            st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
+
+        # 4. On bascule vers l'état "Nettoyage" pour le prochain rafraîchissement
+        st.session_state.display_state = 'clearing'
+        st.rerun()
+
+    # --- ÉTAPE B : Si on est en phase de nettoyage ---
+    elif st.session_state.display_state == 'clearing':
+        
+        # 1. On vide explicitement le placeholder. C'est l'étape de "l'ardoise propre".
+        placeholder.empty()
+
+        # 2. On attend une fraction de seconde, juste assez pour que le navigateur traite le vidage.
+        time.sleep(0.1) # 100 millisecondes
+
+        # 3. On re-bascule vers l'état "Affichage" pour le prochain rafraîchissement
+        st.session_state.display_state = 'show_content'
+        st.rerun()
 # --- 6. ROUTEUR PRINCIPAL DE L'APPLICATION ---
 
 
@@ -993,5 +1160,5 @@ elif st.session_state.view_mode == 'config':
 
 else: # view_mode == 'dashboard'
     # Le mode dashboard active le CSS plein écran et le défilement
-    inject_scrolling_css()
+    
     render_scrolling_dashboard()
