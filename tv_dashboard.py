@@ -483,11 +483,13 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
             heatmap_echarts_data.append([x, y, round(valeur, 1)])
     
     max_val = float(heatmap_data_agg['nb_attente'].max()) if not heatmap_data_agg.empty else 10.0
-    
+ 
+    label_color_js_function = JsCode("{function(params){const c=params.color;const r=parseInt(c.substr(1,2),16);const g=parseInt(c.substr(3,2),16);const b=parseInt(c.substr(5,2),16);const brightness=((r*299)+(g*587)+(b*114))/1000;return brightness<128?'#FFFFFF':'#000000';}}}").js_code
+
     # --- Configuration ECharts ---
     options_heatmap = {'title': {"text": "Heatmap de l'Attente Moyenne par Agence et Heure", "left": "center"},"backgroundColor": BackgroundGraphicColor,
         "tooltip": {"position": "top"},
-        "grid": {"height": "80%", "top": "5%", "left": "15%", "right": "10%"}, # Ajuster les marges pour laisser de la place
+        "grid": {"height": "80%", "top": "5%", "left": "15%", "right": "5%"}, # Ajuster les marges pour laisser de la place
         
         "xAxis": {
             "type": "category",
@@ -531,7 +533,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
             "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
         }]
     }
-    st_echarts(options=options_heatmap, height="700px") # Augmenté la hauteur pour une meilleure visibilité
+    st_echarts(options=options_heatmap, height="750px") # Augmenté la hauteur pour une meilleure visibilité
 
     #st.markdown("<hr>", unsafe_allow_html=True)
 
