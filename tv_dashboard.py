@@ -468,7 +468,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
     max_val = float(heatmap_data_agg['nb_attente'].max()) if not heatmap_data_agg.empty else 10.0
     
     # --- Configuration ECharts ---
-    options_heatmap = {'title': {"text": "Heatmap de l'Attente Moyenne par Agence et Heure", "left": "center"},
+    options_heatmap = {'title': {"text": "Heatmap de l'Attente Moyenne par Agence et Heure", "left": "center"},"backgroundColor": BackgroundGraphicColor,
         "tooltip": {"position": "top"},
         "grid": {"height": "80%", "top": "5%", "left": "10%", "right": "10%"}, # Ajuster les marges pour laisser de la place
         

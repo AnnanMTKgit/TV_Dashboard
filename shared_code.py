@@ -1751,7 +1751,7 @@ def top_agence_freq_echarts(df_all, df_queue, title, color=['#2ECC71', '#3498DB'
 
 
     # 3. Construire le dictionnaire d'options ECharts
-    options = {
+    options = {"backgroundColor": BackgroundGraphicColor,
         "title": {"text": f'{series_name_1} vs {series_name_2}', "left": "center"},
         "tooltip": {
             "trigger": "axis", "axisPointer": {"type": "shadow"},
@@ -2222,7 +2222,7 @@ def plot_line_chart(df):
             'color': GraphicTitleColor  # Set your desired color
         }}
         ,plot_bgcolor=GraphicPlotColor,paper_bgcolor=BackgroundGraphicColor,
-            showlegend=False,height=500
+            showlegend=False,height=600
         )
         
     
@@ -2271,7 +2271,7 @@ def plot_line_chart(df):
             yaxis_title='Nombre d\'Opérations',
             xaxis_tickangle=-45,plot_bgcolor=GraphicPlotColor,paper_bgcolor=BackgroundGraphicColor,
            
-            height=500
+            height=600
 
         )
     return fig 
