@@ -64,7 +64,7 @@ if 'scrolling_active' not in st.session_state: st.session_state.scrolling_active
 if 'current_section_index' not in st.session_state: st.session_state.current_section_index = 0
 if 'section_config' not in st.session_state: st.session_state.section_config = {}
 if 'selected_agencies' not in st.session_state: st.session_state.selected_agencies = []
-
+if 'display_state' not in st.session_state: st.session_state.display_state = 'show_content'
 # --- 2. DÉFINITION DES SECTIONS ET MÉCANISME DE DÉFILEMENT ---
 SECTIONS = {
     "kpis_et_carte": {"title": "Vue d'Ensemble : KPIs "},
@@ -991,10 +991,10 @@ def render_scrolling_dashboard():
     st.markdown("</div>", unsafe_allow_html=True)
         
     # Charger les données UNIQUEMENT pour la journée en cours
-    debut =datetime.strptime('2025-10-31', '%Y-%m-%d')
+    #debut =datetime.strptime('2025-10-31', '%Y-%m-%d')
     today = datetime.now().date()
     with st.spinner(f"Chargement des données ..."):
-        df_all, df_queue = load_all_data(debut, today)
+        df_all, df_queue = load_all_data(today, today)
         
         # Si aucune donnée n'est trouvée pour aujourd'hui, on arrête
         if df_all.empty:
