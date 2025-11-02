@@ -179,131 +179,148 @@ def kpi_circle_chart(label, value, max_value, color_scheme):
     # Superposer les graphiques
     return (arc + text_value + text_label)
 
-def render_kpis_and_map_section(agg_global, df_all_filtered):
-    st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True) 
-    title=SECTIONS["kpis_et_carte"]['title']
-    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-    # --- 1. Calcul des KPIs ---
-    TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
-    TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
-    NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
-    
-    kpi_rh = df_all_filtered.groupby("NomService")["UserName"].nunique().reset_index().rename(columns={"UserName": "Nombre_Agents"})
-   
-    kpi_cols = st.columns(6)
-    
-    with kpi_cols[0]:
-        chart = kpi_circle_chart("Tps Moyen Opération", TMO, max_value=30, color_scheme=['#3498DB', '#EAECEE'])
-        st.altair_chart(chart, use_container_width=True)
-
-    with kpi_cols[1]:
-        chart = kpi_circle_chart("Tps Moyen Attente", TMA, max_value=60, color_scheme=['#F39C12', '#EAECEE'])
-        st.altair_chart(chart, use_container_width=True)
-        
-    with kpi_cols[2]:
-        # Pour le nombre de clients, on peut utiliser une échelle dynamique
-        max_clients = (math.ceil(NMC / 1000) + 1) * 1000 if NMC > 0 else 1000
-        chart = kpi_circle_chart("Total Clients", NMC, max_value=max_clients, color_scheme=['#2ECC71', '#EAECEE'])
-        st.altair_chart(chart, use_container_width=True)
-
-    
-    if not kpi_rh.empty:
-        num_services = len(kpi_rh)
-        rh_cols = st.columns(num_services)
-        
-        # Définir des couleurs pour chaque service
-        service_colors = {
-            "Caissier": ['#E74C3C', '#EAECEE'],
-            "Clientele": ['#8E44AD', '#EAECEE'],
-            "Default": ['#7F8C8D', '#EAECEE']
-        }
-
-        for i, row in kpi_rh.iterrows():
-            service_name = row["NomService"]
-            agent_count = row["Nombre_Agents"]
-            colors = service_colors.get(service_name, service_colors["Default"])
-            
-            with kpi_cols[i+2]:
-                # On peut définir une échelle max pour les agents, par exemple 10
-                chart = kpi_circle_chart(f"Agents {service_name}", agent_count, max_value=10, color_scheme=colors)
-                st.altair_chart(chart, use_container_width=True)
-    else:
-        st.info("Aucune donnée sur les ressources par service disponible.")
-
-    #st.markdown("<hr>", unsafe_allow_html=True)
-# def render_kpis_and_map_section(agg_global,df_all_filtered):
-    
-#     st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True)
-#     title=SECTIONS["kpis_et_carte"]['title']
+# def render_kpis_and_map_section(agg_global, df_all_filtered):
+#     st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True) 
+#     title = SECTIONS["kpis_et_carte"]['title']
 #     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-#     # --- 1. Style CSS pour les cartes (basé sur votre exemple) ---
-#     st.markdown("""
-#     <style>
-#         .custom-card {
-#             background-color: #FFFFFF; 
-#             border: 1px solid #D5D8DC; 
-#             border-radius: 10px; 
-#             padding: 0!important;
-#             margin: 0;
-#             color: black;
-#             height: 100px; /* Hauteur fixe pour un alignement parfait */
-#             display: flex;
-#             flex-direction: column;
-#             justify-content: space-around;
-#         }
-#         .card-title {
-#             font-size: 0.9rem;
-#             color: #555;
-#             font-weight: bold;
-#         }
-#         .card-value {
-#             font-size: 2.5rem;
-#             font-weight: bold;
-#             color: #013447;
-#             text-align: center;
-#         }
-#     </style>
-#     """, unsafe_allow_html=True)
     
-#     # --- 2. Calcul de tous les KPIs ---
+#     # --- 1. Calcul des KPIs (inchangé) ---
 #     TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
 #     TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
 #     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
     
 #     kpi_rh = df_all_filtered.groupby("NomService")["UserName"].nunique().reset_index().rename(columns={"UserName": "Nombre_Agents"})
 
-#     # --- 3. Affichage de TOUS les KPIs dans une seule grille ---
-    
-#     # Créer une liste de tous les KPIs à afficher
-#     kpi_list = [
-#         {"label": "Temps Moyen d'Opération (MIN)", "value": f"{TMO:.0f}"},
-#         {"label": "Temps Moyen d'Attente (MIN)", "value": f"{TMA:.0f}"},
-#         {"label": "Nombre Total de Clients", "value": f"{NMC:,.0f}"},
-#     ]
+#     # --- 2. Disposition de la grille 2x3 ---
 
-#     # Ajouter dynamiquement les KPIs par service
-#     for _, row in kpi_rh.iterrows():
-#         kpi_list.append({
-#             "label": f"Agents \"{row['NomService']}\"",
-#             "value": row['Nombre_Agents']
-#         })
-
-#     # Définir le nombre de colonnes pour la grille
-#     num_cols = 3 # Vous pouvez changer ceci (ex: 4)
+#     # --- LIGNE 1 : KPIs Principaux (TMO, TMA, Total Clients) ---
+#     row1_cols = st.columns(3)
     
-#     # Créer les colonnes et remplir les cartes
-#     cols = st.columns(num_cols)
-#     for i, kpi in enumerate(kpi_list):
-#         col_index = i % num_cols
-#         with cols[col_index]:
-#             st.markdown(f"""
-#                 <div class="custom-card">
-#                     <div class="card-title">{kpi['label']}</div>
-#                     <div class="card-value">{kpi['value']}</div>
-#                 </div>
-#             """, unsafe_allow_html=True)
+#     with row1_cols[0]:
+#         chart_tmo = kpi_circle_chart("Tps Moyen Opération", TMO, max_value=30, color_scheme=['#3498DB', '#EAECEE'])
+#         st.altair_chart(chart_tmo, use_container_width=True)
+
+#     with row1_cols[1]:
+#         chart_tma = kpi_circle_chart("Tps Moyen Attente", TMA, max_value=60, color_scheme=['#F39C12', '#EAECEE'])
+#         st.altair_chart(chart_tma, use_container_width=True)
+        
+#     with row1_cols[2]:
+#         max_clients = (math.ceil(NMC / 1000) + 1) * 1000 if NMC > 0 else 1000
+#         chart_nmc = kpi_circle_chart("Total Clients", NMC, max_value=max_clients, color_scheme=['#2ECC71', '#EAECEE'])
+#         st.altair_chart(chart_nmc, use_container_width=True)
+
+#     # --- LIGNE 2 : KPIs des Agents (dynamique) ---
+#     if not kpi_rh.empty:
+#         # On crée un deuxième ensemble de 3 colonnes pour la deuxième ligne
+#         row2_cols = st.columns(3)
+        
+#         service_colors = {
+#             "Caissier": ['#E74C3C', '#EAECEE'],
+#             "Clientele": ['#8E44AD', '#EAECEE'],
+#             "Default": ['#7F8C8D', '#EAECEE']
+#         }
+
+#         # On itère sur les services (limité aux 3 premiers pour tenir dans la ligne)
+#         for i, row in kpi_rh.head(3).iterrows():
+#             service_name = row["NomService"]
+#             agent_count = row["Nombre_Agents"]
+#             colors = service_colors.get(service_name, service_colors["Default"])
+            
+#             # On remplit les colonnes de la deuxième ligne
+#             with row2_cols[i]:
+#                 chart_agent = kpi_circle_chart(f"Agents {service_name}", agent_count, max_value=10, color_scheme=colors)
+#                 st.altair_chart(chart_agent, use_container_width=True)
+#     else:
+#         st.info("Aucune donnée sur les ressources par service disponible.")
+
+#     st.markdown("<hr>", unsafe_allow_html=True)
 
 #     #st.markdown("<hr>", unsafe_allow_html=True)
+
+def render_kpis_and_map_section(agg_global, df_all_filtered):
+    st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True) 
+    title = SECTIONS["kpis_et_carte"]['title']
+    st.markdown(f"<h1 style='text-align: center; margin-bottom: 2rem;'>{title}</h1>", unsafe_allow_html=True)
+
+    # --- ÉTAPE 1 : INJECTER LE CSS POUR LES CARTES KPI ---
+    st.markdown("""
+        <style>
+            .kpi-card {
+                background-color: #FFFFFF;
+                border-radius: 10px;
+                padding: 1rem;
+                border: 1px solid #E0E0E0;
+                box-shadow: 0 2px 4px 0 rgba(0,0,0,0.05);
+                height: 100%; /* Permet aux cartes de la même ligne d'avoir la même hauteur */
+            }
+            .kpi-label {
+                font-size: 0.9rem;
+                color: #555;
+            }
+            .kpi-value {
+                font-size: 2.8rem;
+                font-weight: bold;
+                color: #013447;
+                text-align: center;
+                padding: 1rem 0;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # --- ÉTAPE 2 : CALCULER LES KPIs ---
+    TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
+    TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
+    NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
+    
+    kpi_rh = df_all_filtered.groupby("NomService")["UserName"].nunique().reset_index().rename(columns={"UserName": "Nombre_Agents"})
+
+    # Créer une liste de tous les KPIs à afficher pour faciliter la gestion
+    kpi_list = [
+        {"label": "Temps Moyen d'Opération (MIN)", "value": f"{TMO:.0f}"},
+        {"label": "Temps Moyen d'Attente (MIN)", "value": f"{TMA:.0f}"},
+        {"label": "Nombre Total de Clients", "value": f"{NMC:,.0f}"},
+    ]
+
+    # Ajouter dynamiquement les KPIs par service à la liste
+    for _, row in kpi_rh.iterrows():
+        kpi_list.append({
+            "label": f"Agents \"{row['NomService']}\"",
+            "value": row['Nombre_Agents']
+        })
+
+    # --- ÉTAPE 3 : AFFICHER LA GRILLE 2x3 AVEC CONTRÔLE DE L'ESPACEMENT ---
+    
+    # Créer les colonnes pour la première ligne
+    # C'est ici que vous contrôlez l'ESPACEMENT HORIZONTAL
+    cols_ligne_1 = st.columns(3, gap="large")
+    
+    # Afficher les 3 premiers KPIs
+    for i in range(3):
+        with cols_ligne_1[i]:
+            kpi = kpi_list[i]
+            # On ajoute une marge en bas (margin-bottom) pour l'ESPACEMENT VERTICAL
+            st.markdown(f"""
+                <div class="kpi-card" style="margin-bottom: 2rem;">
+                    <div class="kpi-label">{kpi['label']}</div>
+                    <div class="kpi-value">{kpi['value']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    # Créer les colonnes pour la deuxième ligne
+    cols_ligne_2 = st.columns(3, gap="large")
+
+    # Afficher les KPIs suivants (jusqu'à 3)
+    for i in range(3):
+        # On vérifie qu'il y a bien un KPI à afficher pour cette colonne
+        if (i + 3) < len(kpi_list):
+            with cols_ligne_2[i]:
+                kpi = kpi_list[i + 3]
+                st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">{kpi['label']}</div>
+                        <div class="kpi-value">{kpi['value']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
 # def render_kpis_and_map_section(agg_global, **kwargs):
 #     # L'ancre et le titre restent, mais ils sont maintenant gérés par la mise en page Flexbox
 #     st.markdown(f"<h1 style='text-align: center;'>{SECTIONS['kpis_et_carte']['title']}</h1>", unsafe_allow_html=True)
@@ -624,7 +641,7 @@ def render_supervision_offline_section(df_queue, df_agencies_regions, **kwargs):
                 
                 # Le code Markdown pour la carte reste identique.
                 st.markdown(f"""
-                    <div class="metric-card" style="background-color: #FEF2F2; border: 1px solid #F87171;">
+                    <div class="metric-card" style="margin-bottom: 1.5rem;" style="background-color: #FEF2F2; border: 1px solid #F87171;">
                         <div class="metric-label">
                             <span class="status-led red"></span>
                             <span>{nom_agence}</span>
@@ -662,7 +679,7 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
 
     # --- 2. PARAMÈTRES DE LA PAGINATION ---
     # Affiche 3 lignes de 5 agences, soit 15 par "diapositive"
-    ITEMS_PER_PAGE = 12 
+    ITEMS_PER_PAGE = 12
     NUM_COLS = 4
 
     # --- 3. PRÉPARATION DES DONNÉES ---
@@ -762,7 +779,7 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
                     
                     # Construction de la carte-métrique
                     st.markdown(f"""
-                            <div class="metric-card">
+                            <div class="metric-card" style="margin-bottom: 1.5rem;">
                                 <div class="metric-label">
                                     <span class="status-led {status_class}"></span>
                                     <span>{nom_agence}</span>
