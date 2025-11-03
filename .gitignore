@@ -182,4 +182,4 @@ __pycache__/
 
 map.html
 
-.streamlit/
+.streamlit/secrets.toml

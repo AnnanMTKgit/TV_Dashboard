@@ -1,0 +1,24 @@
+
+[theme]
+# Note : ces couleurs peuvent être surchargées par le CSS si elles sont plus spécifiques
+backgroundColor="#f5f2f2"         # Fond blanc cassé pour l'écran principal (correspond à .stApp background-color)
+textColor="#000000"               # Texte noir pour l'écran principal
+secondaryBackgroundColor="white" # Fond de la barre latérale (noir très foncé)
+primaryColor="#013447" #couleur de selection de multiselect
+font="sans serif"
+
+
+[server]
+# C'est la ligne la plus importante.
+# Elle dit à Streamlit que l'application n'attend pas d'interaction de l'utilisateur.
+# Cela désactive les timeouts de connexion qui causent la déconnexion.
+headless = true
+
+[client]
+# Masque les détails techniques des erreurs pour les utilisateurs finaux.
+showErrorDetails = false
+
+[runner]
+# Streamlit vérifie périodiquement si le script a été modifié sur le disque.
+# Pour un dashboard en production, on peut désactiver cela.
+# fileWatcherType = "none"
