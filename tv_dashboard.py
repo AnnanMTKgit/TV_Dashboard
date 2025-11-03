@@ -1008,6 +1008,14 @@ def render_scrolling_dashboard():
 
     enabled_anchors = [sec_id for sec_id, config in st.session_state.section_config.items() if config['enabled']]
     
+    if not enabled_anchors:
+        st.warning("Aucune section n'a été sélectionnée pour l'affichage.")
+        st.info("Veuillez arrêter le dashboard et activer au moins une section dans la page de configuration.")
+        # On arrête l'exécution de cette fonction pour éviter le crash.
+        # Le bouton "Arrêter" restera visible pour que l'utilisateur puisse agir.
+        return
+
+
     # 1. On détermine quelle est la SEULE section à afficher
     # 1. Déterminer quelle section afficher
     current_anchor_id = enabled_anchors[st.session_state.current_section_index]
