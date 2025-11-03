@@ -73,7 +73,7 @@ def inject_scrolling_css():
         </style>
     """, unsafe_allow_html=True)
 # Initialisation de l'état de session
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+#if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'initial_date_selected' not in st.session_state: st.session_state.initial_date_selected = False
 if 'view_mode' not in st.session_state: st.session_state.view_mode = 'config' # 'config' or 'dashboard'
 if 'scrolling_active' not in st.session_state: st.session_state.scrolling_active = False
@@ -875,11 +875,11 @@ def render_end_section():
 def render_configuration_page():
     st.title("Configuration du Défilement TV")
     
-    _, col_logout = st.columns([0.9, 0.1])
-    with col_logout:
-        if st.button("🔴Déconnection", help="Se déconnecter"):
-            for key in list(st.session_state.keys()): del st.session_state[key]
-            st.rerun()
+    # _, col_logout = st.columns([0.9, 0.1])
+    # with col_logout:
+    #     if st.button("🔴Déconnection", help="Se déconnecter"):
+    #         for key in list(st.session_state.keys()): del st.session_state[key]
+    #         st.rerun()
 
     st.info(f"Le tableau de bord affichera automatiquement les données pour aujourd'hui : **{datetime.now().strftime('%d %B %Y')}**.")
     st.markdown("---")
@@ -914,57 +914,7 @@ def render_configuration_page():
         st.session_state.current_section_index = 0
         st.rerun()
 
-# def render_scrolling_dashboard():
-#     # Afficher les contrôles en haut
-#     if st.button("⏹️ Arrêter et Reconfigurer"):
-#         st.session_state.view_mode = 'config'
-#         st.session_state.scrolling_active = False
-#         st.rerun()
-        
-#     # Charger les données filtrées
-#     with st.spinner("Chargement des données..."):
-#         df_all, df_queue = load_all_data(st.session_state.start_date, st.session_state.end_date)
-#         df_all_filtered = df_all[df_all['NomAgence'].isin(st.session_state.selected_agencies)]
-#         df_queue_filtered = df_queue[df_queue['NomAgence'].isin(st.session_state.selected_agencies)]
-#         if df_all_filtered.empty:
-#             st.warning("Aucune donnée pour les filtres. Retour à la configuration.")
-#             st.session_state.view_mode = 'config'; st.session_state.scrolling_active = False
-#             time.sleep(3); st.rerun()
-#         _, agence_global, _, _ = AgenceTable2(df_all_filtered, df_queue_filtered)
-    
-#     # Dictionnaire des fonctions de rendu
-#     render_functions = {
-#         "kpis_et_carte": (render_kpis_and_map_section, {'agg_global': agence_global}),
-#         "top_sevice": (render_top_sevice, {'df_all': df_all_filtered}),
-#         "analyse_agence_performance": (render_agency_analysis_performance_section, {'df_all': df_all_filtered}),
-#         "analyse_agence_frequentation": (render_agency_analysis_frequentation_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
-#         "analyse_service": (render_service_analysis_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
-#         "performance_agent_volume_temps": (render_agent_performance_volume_temps_section, {'df_all': df_all_filtered}),
-#         "performance_agent_evolution_categorie": (render_agent_performance_evolution_categorie_section, {'df_all': df_all_filtered}),
-#         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
-#         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
-#         #"prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
-#         "fin_de_cycle": (render_end_section, {}),
-#     }
 
-#     enabled_anchors = [sec_id for sec_id, config in st.session_state.section_config.items() if config['enabled']]
-    
-#     # NE Rendre QUE les sections activées
-#     for anchor in enabled_anchors:
-#         if anchor in render_functions:
-#             func, kwargs = render_functions[anchor]
-#             func(**kwargs)
-
-#     # Logique de défilement
-#     if not enabled_anchors:
-#         st.warning("Aucune section n'est activée. Retour à la configuration."); time.sleep(3)
-#         st.session_state.view_mode = 'config'; st.session_state.scrolling_active = False; st.rerun()
-    
-#     current_anchor_id = enabled_anchors[st.session_state.current_section_index]
-#     scroll_to_anchor(current_anchor_id)
-#     time.sleep(st.session_state.get('scroll_duration', 15))
-#     st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
-#     st.rerun()
 def render_scrolling_dashboard():
      # Cette ligne est la clé : le CSS plein écran n'est injecté que dans ce mode.
     inject_scrolling_css()
@@ -1088,59 +1038,57 @@ def render_scrolling_dashboard():
 
 
 def show_login_page():
-    # --- NOUVEAU : Créer des colonnes pour centrer le contenu ---
-    # Nous créons 3 colonnes, la colonne du milieu sera plus large
-    # Les colonnes latérales vides serviront de marges.
+ 
     col1, col2, col3 = st.columns([1, 1.5, 1])
 
-    # Tout le contenu de la page de connexion ira dans la colonne du milieu
-    with col2:
+    # # Tout le contenu de la page de connexion ira dans la colonne du milieu
+    # with col2:
     
         
     
         
-        # Envelopper le tout dans un conteneur avec la classe CSS
-        with st.container():
-            st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    #     # Envelopper le tout dans un conteneur avec la classe CSS
+    #     with st.container():
+    #         st.markdown('<div class="login-card">', unsafe_allow_html=True)
             
-            st.title("Connexion au Dashboard Marlodj")
+    #         st.title("Connexion au Dashboard Marlodj")
             
-            # La logique de connexion reste la même
-            conn = get_connection()
-            df_users = run_query(conn, SQLQueries().ProfilQueries)
-            users_dict = dict(zip(df_users['UserName'], df_users['MotDePasse']))
+    #         # La logique de connexion reste la même
+    #         conn = get_connection()
+    #         df_users = run_query(conn, SQLQueries().ProfilQueries)
+    #         users_dict = dict(zip(df_users['UserName'], df_users['MotDePasse']))
             
-            with st.form("login_form"):
-                st.text_input("Nom d'utilisateur", key="username_input")
-                st.text_input("Mot de passe", type="password", key="password_input")
+    #         with st.form("login_form"):
+    #             st.text_input("Nom d'utilisateur", key="username_input")
+    #             st.text_input("Mot de passe", type="password", key="password_input")
                 
-                # --- NOUVEAU : Améliorer le bouton ---
-                submitted = st.form_submit_button(
-                    "Se connecter", 
-                    use_container_width=True, # Le bouton prend toute la largeur du formulaire
-                    type="primary" # Style plus visible
-                )
+    #             # --- NOUVEAU : Améliorer le bouton ---
+    #             submitted = st.form_submit_button(
+    #                 "Se connecter", 
+    #                 use_container_width=True, # Le bouton prend toute la largeur du formulaire
+    #                 type="primary" # Style plus visible
+    #             )
                 
-                if submitted:
-                    username = st.session_state.username_input
-                    password = st.session_state.password_input
+    #             if submitted:
+    #                 username = st.session_state.username_input
+    #                 password = st.session_state.password_input
                     
-                    if users_dict.get(username) == password:
-                        st.session_state.logged_in = True
-                        st.rerun()
-                    else:
-                        st.error("Nom d'utilisateur ou mot de passe incorrect.")
+    #                 if users_dict.get(username) == password:
+    #                     st.session_state.logged_in = True
+    #                     st.rerun()
+    #                 else:
+    #                     st.error("Nom d'utilisateur ou mot de passe incorrect.")
             
-            st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # Charger les CSS de base une seule fois au début
 load_base_css()
 
-if not st.session_state.logged_in:
-    show_login_page()
+# if not st.session_state.logged_in:
+#     show_login_page()
 
-elif st.session_state.view_mode == 'config':
+if st.session_state.view_mode == 'config':
     # Le mode config est une page standard
     render_configuration_page()
 
