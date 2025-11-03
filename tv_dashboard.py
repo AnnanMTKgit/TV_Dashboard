@@ -956,7 +956,7 @@ def render_scrolling_dashboard():
     placeholder = st.empty()
 
 
-    inject_keep_alive()
+    
     # Dictionnaire des fonctions de rendu (inchangé)
 
     render_functions = {
@@ -978,62 +978,61 @@ def render_scrolling_dashboard():
     if not enabled_anchors:
         st.warning("Aucune section n'a été sélectionnée pour l'affichage.")
         st.info("Veuillez arrêter le dashboard et activer au moins une section dans la page de configuration.")
-        # On arrête l'exécution de cette fonction pour éviter le crash.
-        # Le bouton "Arrêter" restera visible pour que l'utilisateur puisse agir.
+      
         return
 
 
-    # 1. On détermine quelle est la SEULE section à afficher
-    # 1. Déterminer quelle section afficher
-    current_anchor_id = enabled_anchors[st.session_state.current_section_index]
-    
-    # 2. Utiliser le conteneur pour afficher la section
-    # À chaque rerun, le placeholder est d'abord vidé avant d'être rempli.
-    if st.session_state.display_state == 'show_content':
-        
-        # 1. On affiche la section actuelle dans le placeholder
-        with placeholder.container():
-            current_anchor_id = enabled_anchors[st.session_state.current_section_index]
-            func, kwargs = render_functions[current_anchor_id]
-            
-            # La logique de rendu et de pagination du monitoring reste la même
-            total_pages_monitoring = 1
-            if current_anchor_id == "supervision_monitoring":
-                total_pages_monitoring = func(**kwargs)
-            else:
-                func(**kwargs)
-
-        # 2. On attend la durée de visualisation
-        time.sleep(st.session_state.get('scroll_duration', 15))
-
-        # 3. ON PRÉPARE LE PASSAGE À LA SECTION SUIVANTE (logique inchangée)
+    with placeholder.container():
         current_anchor_id = enabled_anchors[st.session_state.current_section_index]
-        if current_anchor_id == "supervision_monitoring":
-            is_last_page = (st.session_state.monitoring_page_index >= total_pages_monitoring - 1)
-            if is_last_page:
-                st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
-                st.session_state.monitoring_page_index = 0
-            else:
-                st.session_state.monitoring_page_index += 1
-        else:
-            st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
-
-        # 4. On bascule vers l'état "Nettoyage" pour le prochain rafraîchissement
-        st.session_state.display_state = 'clearing'
-        st.rerun()
-
-    # --- ÉTAPE B : Si on est en phase de nettoyage ---
-    elif st.session_state.display_state == 'clearing':
+        func, kwargs = render_functions[current_anchor_id]
         
-        # 1. On vide explicitement le placeholder. C'est l'étape de "l'ardoise propre".
-        placeholder.empty()
+        total_pages = 1 # Valeur par défaut
+        if current_anchor_id in ["supervision_monitoring", "supervision_offline"]:
+            # On exécute la fonction et on récupère le nombre total de pages
+            total_pages = func(**kwargs)
+        else:
+            func(**kwargs)
 
-        # 2. On attend une fraction de seconde, juste assez pour que le navigateur traite le vidage.
-        time.sleep(0.1) # 100 millisecondes
+    # 2. On calcule la durée de la pause
+    current_anchor_id = enabled_anchors[st.session_state.current_section_index]
+    if current_anchor_id in ["supervision_monitoring", "supervision_offline"]:
+        duration = st.session_state.get('monitoring_duration', 8)
+    else:
+        duration = st.session_state.get('scroll_duration', 15)
 
-        # 3. On re-bascule vers l'état "Affichage" pour le prochain rafraîchissement
-        st.session_state.display_state = 'show_content'
-        st.rerun()
+    # 3. ON FAIT LA PAUSE AVANT DE NETTOYER
+    time.sleep(duration)
+
+    # 4. ON NETTOIE L'ÉCRAN
+    # C'est l'étape clé. On vide le placeholder manuellement.
+    placeholder.empty()
+
+    # 5. On attend une fraction de seconde pour que le navigateur traite le nettoyage
+    time.sleep(0.1)
+
+    # 6. ON CALCULE L'INDEX SUIVANT
+    # La logique est la même qu'avant
+    if current_anchor_id == "supervision_monitoring":
+        is_last_page = (st.session_state.monitoring_page_index >= total_pages - 1)
+        if is_last_page:
+            st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
+            st.session_state.monitoring_page_index = 0
+        else:
+            st.session_state.monitoring_page_index += 1
+            
+    elif current_anchor_id == "supervision_offline":
+        is_last_page = (st.session_state.offline_page_index >= total_pages - 1)
+        if is_last_page:
+            st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
+            st.session_state.offline_page_index = 0
+        else:
+            st.session_state.offline_page_index += 1
+            
+    else:
+        st.session_state.current_section_index = (st.session_state.current_section_index + 1) % len(enabled_anchors)
+        
+    # 7. ON RELANCE LE SCRIPT
+    st.rerun()
 # --- 6. ROUTEUR PRINCIPAL DE L'APPLICATION ---
 
 
