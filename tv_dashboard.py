@@ -546,7 +546,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
             "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
         }]
     }
-    st_echarts(options=options_heatmap, height="700px") # Augmenté la hauteur pour une meilleure visibilité
+    st_echarts(options=options_heatmap, height="700px", key="heatmap_attente_hebdomadaire") # Augmenté la hauteur pour une meilleure visibilité
 
     #st.markdown("<hr>", unsafe_allow_html=True)
 
