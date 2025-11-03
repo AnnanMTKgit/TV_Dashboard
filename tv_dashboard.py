@@ -24,7 +24,20 @@ def load_base_css():
         with open("led.css") as f: st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError as e:
         st.error(f"Erreur de chargement CSS: Le fichier {e.filename} est introuvable.")
-
+def inject_keep_alive():
+    """Injecte un script qui envoie un ping périodique pour garder la session active."""
+    html(
+        """
+        <script>
+            // Toutes les 30 secondes, on envoie un message à la console.
+            // Cette simple action est détectée comme une activité par le navigateur et Streamlit.
+            setInterval(function() {
+                console.log("TV Dashboard Keep-Alive Ping");
+            }, 30000); // 30000 ms = 30 secondes
+        </script>
+        """,
+        height=0,
+    )
 def inject_scrolling_css():
     """Injecte le CSS SPÉCIFIQUE au mode défilement plein écran."""
     st.markdown("""
@@ -991,7 +1004,11 @@ def render_scrolling_dashboard():
     # --- CRÉATION DU CONTENEUR TAMPON ---
     # On crée UN SEUL espace réservé au début.
     placeholder = st.empty()
+
+
+    inject_keep_alive()
     # Dictionnaire des fonctions de rendu (inchangé)
+
     render_functions = {
         "kpis_et_carte": (render_kpis_and_map_section,  {'agg_global': agence_global, 'df_all_filtered': df_all_filtered}),
         "top_sevice": (render_top_sevice, {'df_all': df_all_filtered}),
