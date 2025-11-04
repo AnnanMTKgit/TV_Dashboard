@@ -70,6 +70,15 @@ def inject_scrolling_css():
                 
             }
             
+
+            /* --- C'EST ICI QUE LE CHANGEMENT A LIEU --- */
+            .main [data-testid="stVerticalBlock"] h1 {
+                text-align: center;
+                flex-shrink: 0; /* Empêche le titre de rétrécir s'il manque de place */
+
+                /* Augmentez cette valeur pour plus d'espace, réduisez-la pour moins d'espace */
+                margin-bottom: 1.5rem !important; /* Ancien: 1.5rem */
+            }
         </style>
     """, unsafe_allow_html=True)
 # Initialisation de l'état de session
