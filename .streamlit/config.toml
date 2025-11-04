@@ -21,4 +21,4 @@ showErrorDetails = false
 [runner]
 # Streamlit vérifie périodiquement si le script a été modifié sur le disque.
 # Pour un dashboard en production, on peut désactiver cela.
-fileWatcherType = "none"
+#fileWatcherType = "none"
