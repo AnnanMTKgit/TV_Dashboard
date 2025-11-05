@@ -343,31 +343,7 @@ def render_kpis_and_map_section(agg_global, df_all_filtered):
                         <div class="kpi-value">{kpi['value']}</div>
                     </div>
                 """, unsafe_allow_html=True)
-# def render_kpis_and_map_section(agg_global, **kwargs):
-#     # L'ancre et le titre restent, mais ils sont maintenant gérés par la mise en page Flexbox
-#     st.markdown(f"<h1 style='text-align: center;'>{SECTIONS['kpis_et_carte']['title']}</h1>", unsafe_allow_html=True)
-#     with open("styles.css") as f: st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-#     # Les KPIs sont placés dans leurs colonnes
-#     TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
-#     TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
-#     NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
-    
-#     kpi1, kpi2, kpi3 = st.columns(3)
-#     kpi1.metric("Temps Moyen d'Opération (MIN)", f"{TMO:.0f}")
-#     kpi2.metric("Temps Moyen d'Attente (MIN)", f"{TMA:.0f}")
-#     kpi3.metric("Nombre Total de Clients", f"{NMC:.0f}")
-    
-#     # La carte est le dernier élément, elle prendra l'espace restant
-#     agg_map = agg_global.rename(columns={
-#         "Nom d'Agence": 'NomAgence', 
-#         'Capacité': 'Capacites', 
-#         "Temps Moyen d'Attente (MIN)": 'Temps_Moyen_Attente', 
-#         'Nbs de Clients en Attente': 'AttenteActuel'
-#     })
-#     map_html = create_folium_map(agg_map)
-    
-#     # On donne une hauteur généreuse à la carte
-#     html(map_html, height=600, scrolling=True)
+
 def render_top_sevice(df_all):
     st.markdown('<div id="top_sevice"></div>', unsafe_allow_html=True)
     title=SECTIONS["top_sevice"]['title']
@@ -848,6 +824,11 @@ def render_prediction_section(df_queue_filtered, conn):
 
         if df_observed is not None and df_predictions is not None:
             all_agencies = df_predictions.index.get_level_values('NomAgence').unique().tolist()
+            
+            if not all_agencies:
+                st.info("Aucune prédiction n'a pu être générée pour les agences sélectionnées.")
+                return
+            
             num_columns = 2
             for i in range(0, len(all_agencies), num_columns):
                 cols = st.columns(num_columns)
