@@ -374,14 +374,24 @@ def render_top_sevice(df_all):
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     figures_activity = analyse_activity(df_all, type='Type_Operation', concern='NomService')
-    with c1:
-        
-        
+    # Cas 1 : La fonction n'a retourné AUCUN graphique
+    c1, c2 = st.columns(2)
+    if not figures_activity:
+        st.info("Aucune donnée d'activité disponible pour générer les graphiques.")
+
+    # Cas 2 : La fonction a retourné UN SEUL graphique
+    elif len(figures_activity) == 1:
+        # On affiche le seul graphique disponible, en pleine largeur pour un meilleur rendu
         st_echarts(options=figures_activity[0], height="600px", key="service_activity_1")
-   
-    with c2:
+
+    # Cas 3 : La fonction a retourné DEUX graphiques ou plus (comportement normal)
+    else:
         
-        st_echarts(options=figures_activity[1], height="600px", key="service_activity_2")
+        with c1:
+            st_echarts(options=figures_activity[0], height="600px", key="service_activity_1")
+        with c2:
+            st_echarts(options=figures_activity[1], height="600px", key="service_activity_2")
+            
 
     #st.markdown("<hr>", unsafe_allow_html=True)
       
