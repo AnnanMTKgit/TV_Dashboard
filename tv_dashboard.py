@@ -90,18 +90,20 @@ if 'current_section_index' not in st.session_state: st.session_state.current_sec
 if 'section_config' not in st.session_state: st.session_state.section_config = {}
 if 'selected_agencies' not in st.session_state: st.session_state.selected_agencies = []
 if 'display_state' not in st.session_state: st.session_state.display_state = 'show_content'
+if "start_date" not in st.session_state: st.session_state.start_date = None
+if "end_date" not in st.session_state: st.session_state.end_date = None
 # --- 2. DÉFINITION DES SECTIONS ET MÉCANISME DE DÉFILEMENT ---
 SECTIONS = {
     "kpis_et_carte": {"title": "Vue d'Ensemble : KPIs "},
     "analyse_agence_performance": {"title": "Analyse Agence : Performance & Lenteur"},
-    "analyse_agence_frequentation": {"title": "Analyse Agence : Fréquentation"},
+    "analyse_agence_frequentation": {"title": "Analyse Agence : Top5 des Agences en Fréquentation"},
     "analyse_service": {"title": "Analyse Détaillée par Service"}, # Exception à 3 graphiques
     "top_sevice": {"title": "Type d'activité par Service"},
     "performance_agent_volume_temps": {"title": "Performance Agent : Volume & Temps Moyen"},
     "performance_agent_evolution_categorie": {"title": "Performance Agent : Évolution & Catégorie"},
     "analyse_attente_hebdomadaire": {"title": "Analyse Attente : Tendance Journalière"},
     "supervision_monitoring": {"title": "Supervision : Monitoring Temps Réel"},
-   # "prediction_affluence": {"title": "Prédiction de l'Affluence Future"},
+   #"prediction_affluence": {"title": "Prédiction de l'Affluence Future"},
    "supervision_offline": {"title": "Supervision : Agences Hors Ligne"}, # <-- NOUVELLE LIGNE
     # "fin_de_cycle": {"title": "Fin du Cycle"},
 }
@@ -452,7 +454,9 @@ def render_agent_performance_evolution_categorie_section(df_all):
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
+        options_leaderboard=plot_line_chart_echarts(df_all)
+        st_echarts(options=options_leaderboard, height="600px", key="agent_leaderboard")
+        #st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
     with c2:
         st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="600px")
     #st.markdown("<hr>", unsafe_allow_html=True)
@@ -807,62 +811,162 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
     return num_pages
 
     
-def render_prediction_section(df_queue_filtered, conn):
-    title=SECTIONS["prediction_affluence"]['title']
-    st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
-    is_today = (st.session_state.end_date == datetime.now().date())
-    if is_today and not df_queue_filtered.empty:
-        df_actual = df_queue_filtered[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
-        yesterday = st.session_state.end_date - timedelta(days=1)
+# def render_prediction_section(df_queue_filtered, conn):
+#     title=SECTIONS["prediction_affluence"]['title']
+#     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
+#     is_today = (st.session_state.end_date == datetime.now().date())
+#     if is_today and not df_queue_filtered.empty:
+#         df_actual = df_queue_filtered[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
+#         yesterday = st.session_state.end_date - timedelta(days=1)
         
-        with st.spinner("Calcul des prédictions en cours..."):
-            df_past = run_query(conn, SQLQueries().AllQueueQueries, params=(yesterday, yesterday))
-            df_past = df_past[df_past['NomAgence'].isin(st.session_state.selected_agencies)]
-            df_past = df_past[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
+#         with st.spinner("Calcul des prédictions en cours..."):
+#             df_past = run_query(conn, SQLQueries().AllQueueQueries, params=(yesterday, yesterday))
+#             df_past = df_past[df_past['NomAgence'].isin(st.session_state.selected_agencies)]
+#             df_past = df_past[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
             
-            df_observed, df_predictions, current_time = run_prediction_pipeline(df_actual, df_past)
+#             df_observed, df_predictions, current_time = run_prediction_pipeline(df_actual, df_past)
 
-        if df_observed is not None and df_predictions is not None:
-            all_agencies = df_predictions.index.get_level_values('NomAgence').unique().tolist()
+#         if df_observed is not None and df_predictions is not None:
+#             all_agencies = df_predictions.index.get_level_values('NomAgence').unique().tolist()
             
-            if not all_agencies:
-                st.info("Aucune prédiction n'a pu être générée pour les agences sélectionnées.")
-                return
+#             if not all_agencies:
+#                 st.info("Aucune prédiction n'a pu être générée pour les agences sélectionnées.")
+#                 return
             
-            num_columns = 2
-            for i in range(0, len(all_agencies), num_columns):
-                cols = st.columns(num_columns)
-                row_agencies = all_agencies[i : i + num_columns]
-                for j, agency in enumerate(row_agencies):
-                    with cols[j]:
-                        st.markdown(f"<h3 style='text-align: center;'>{agency}</h3>", unsafe_allow_html=True)
-                        observed_agency_data = df_observed.loc[agency]
-                        predicted_agency_data = df_predictions.loc[agency]
+#             num_columns = 2
+#             for i in range(0, len(all_agencies), num_columns):
+#                 cols = st.columns(num_columns)
+#                 row_agencies = all_agencies[i : i + num_columns]
+#                 for j, agency in enumerate(row_agencies):
+#                     with cols[j]:
+#                         st.markdown(f"<h3 style='text-align: center;'>{agency}</h3>", unsafe_allow_html=True)
+#                         observed_agency_data = df_observed.loc[agency]
+#                         predicted_agency_data = df_predictions.loc[agency]
                         
-                        display_start_time = current_time - pd.Timedelta(hours=23)
-                        past_data = observed_agency_data.loc[display_start_time:current_time]['nb_attente']
-                        future_data = predicted_agency_data['prediction']
-                        dates_list = past_data.index.strftime('%Hh').tolist() + future_data.index.strftime('%Hh').tolist()
-                        past_values = np.round(past_data.values, 2).tolist()
-                        future_values = np.round(future_data.values, 2).tolist()
+#                         display_start_time = current_time - pd.Timedelta(hours=23)
+#                         past_data = observed_agency_data.loc[display_start_time:current_time]['nb_attente']
+#                         future_data = predicted_agency_data['prediction']
+#                         dates_list = past_data.index.strftime('%Hh').tolist() + future_data.index.strftime('%Hh').tolist()
+#                         past_values = np.round(past_data.values, 2).tolist()
+#                         future_values = np.round(future_data.values, 2).tolist()
                         
-                        options = {
-                            "tooltip": {"trigger": "axis"},
-                            "legend": {"data": ["Affluence observée", "Affluence Prédite"], "top": 5},
-                            "xAxis": {"type": "category", "data": dates_list},
-                            "yAxis": {"type": "value", "name": "Moyenne"},
-                            "grid": {"left": "10%", "right": "5%", "top": "15%", "bottom": "10%"},
-                            "series": [
-                                {"name": "Affluence observée", "type": "line", "data": past_values, "lineStyle": {"color": "#3398DB"}},
-                                {"name": "Affluence Prédite", "type": "line", "data": [None] * len(past_values) + future_values, "lineStyle": {"color": "#FF5733", "type": "dashed"}}
-                            ]
-                        }
-                        st_echarts(options=options, height="400px", key=f"pred_{agency}")
-        else:
-            st.error("Impossible de générer les prédictions.")
-    else:
-        st.info("Les prédictions ne sont disponibles que si la date de fin sélectionnée est aujourd'hui.")
-    #st.markdown("<hr>", unsafe_allow_html=True)
+#                         options = {
+#                             "tooltip": {"trigger": "axis"},
+#                             "legend": {"data": ["Affluence observée", "Affluence Prédite"], "top": 5},
+#                             "xAxis": {"type": "category", "data": dates_list},
+#                             "yAxis": {"type": "value", "name": "Moyenne"},
+#                             "grid": {"left": "10%", "right": "5%", "top": "15%", "bottom": "10%"},
+#                             "series": [
+#                                 {"name": "Affluence observée", "type": "line", "data": past_values, "lineStyle": {"color": "#3398DB"}},
+#                                 {"name": "Affluence Prédite", "type": "line", "data": [None] * len(past_values) + future_values, "lineStyle": {"color": "#FF5733", "type": "dashed"}}
+#                             ]
+#                         }
+#                         st_echarts(options=options, height="400px", key=f"pred_{agency}")
+#         else:
+#             st.error("Impossible de générer les prédictions.")
+#     else:
+#         st.info("Les prédictions ne sont disponibles que si la date de fin sélectionnée est aujourd'hui.")
+#     #st.markdown("<hr>", unsafe_allow_html=True)
+
+# def render_prediction_section(df_queue_filtered, conn):
+#     title = SECTIONS["prediction_affluence"]['title']
+#     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
+
+#     # --- ÉTAPE 1 : INJECTER LE CSS POUR NOS NOUVELLES CARTES KPI ---
+#     # On réutilise le style des autres sections pour une apparence cohérente.
+#     st.markdown("""
+#         <style>
+#             .pred-card {
+#                 background-color: #FFFFFF;
+#                 border-radius: 10px;
+#                 padding: 1rem;
+#                 border: 1px solid #E0E0E0;
+#                 box-shadow: 0 2px 4px 0 rgba(0,0,0,0.05);
+#                 text-align: center;
+#                 height: 100%;
+#             }
+#             .pred-label {
+#                 font-size: 1rem;
+#                 color: #555;
+#             }
+#             .pred-value {
+#                 font-size: 2.5rem;
+#                 font-weight: bold;
+#                 color: #FF5733; /* Couleur orange pour signifier la prédiction */
+#                 padding: 0.5rem 0;
+#             }
+#         </style>
+#     """, unsafe_allow_html=True)
+
+#     is_today = (st.session_state.get('end_date', datetime.now().date()) == datetime.now().date())
+#     if is_today and not df_queue_filtered.empty:
+#         df_actual = df_queue_filtered[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
+#         yesterday = st.session_state.end_date - timedelta(days=1)
+        
+#         with st.spinner("Calcul des prédictions en cours..."):
+#             df_past = run_query(conn, SQLQueries().AllQueueQueries, params=(yesterday, yesterday))
+#             df_past = df_past[df_past['NomAgence'].isin(st.session_state.selected_agencies)]
+#             df_past = df_past[["Date_Reservation", "Date_Appel", "Date_Fin", "NomAgence"]]
+            
+#             df_observed, df_predictions, current_time = run_prediction_pipeline(df_actual, df_past)
+
+#         if df_observed is not None and df_predictions is not None:
+#             all_agencies = df_predictions.index.get_level_values('NomAgence').unique().tolist()
+            
+#             if not all_agencies:
+#                 st.info("Aucune prédiction n'a pu être générée pour les agences sélectionnées.")
+#                 return
+            
+#             # On crée une grille pour afficher les agences
+#             num_columns = 2
+#             for i in range(0, len(all_agencies), num_columns):
+#                 cols = st.columns(num_columns, gap="large")
+#                 row_agencies = all_agencies[i : i + num_columns]
+                
+#                 for j, agency in enumerate(row_agencies):
+#                     with cols[j]:
+#                         st.markdown(f"<h3 style='text-align: center;'>{agency}</h3>", unsafe_allow_html=True)
+#                         predicted_agency_data = df_predictions.loc[agency]
+#                         future_data = predicted_agency_data['prediction']
+                        
+#                         # --- C'EST ICI QUE LA LOGIQUE CHANGE ---
+#                         if not future_data.empty:
+#                             # 1. Extraire la prédiction pour la prochaine heure
+#                             next_hour_time = future_data.index[0]
+#                             next_hour_prediction = future_data.iloc[0]
+
+#                             # 2. Extraire le pic d'affluence prévu
+#                             peak_time = future_data.idxmax()
+#                             peak_prediction = future_data.max()
+
+#                             # 3. Afficher ces deux KPIs dans des colonnes
+#                             kpi_cols = st.columns(2)
+#                             with kpi_cols[0]:
+#                                 st.markdown(f"""
+#                                     <div class="pred-card">
+#                                         <div class="pred-label">Prochaine Heure ({next_hour_time.strftime('%Hh')})</div>
+#                                         <div class="pred-value">{round(next_hour_prediction)}</div>
+#                                     </div>
+#                                 """, unsafe_allow_html=True)
+                            
+#                             with kpi_cols[1]:
+#                                 st.markdown(f"""
+#                                     <div class="pred-card">
+#                                         <div class="pred-label">Pic Prévu ({peak_time.strftime('%Hh')})</div>
+#                                         <div class="pred-value">{round(peak_prediction)}</div>
+#                                     </div>
+#                                 """, unsafe_allow_html=True)
+#                         else:
+#                             st.info("Aucune prédiction future disponible pour cette agence.")
+                        
+#                         st.markdown("<br>", unsafe_allow_html=True) # Espace vertical entre les agences
+
+#         else:
+#             st.error("Impossible de générer les prédictions.")
+#     else:
+#         st.info("Les prédictions ne sont disponibles que si la date de fin sélectionnée est aujourd'hui.")
+
+
 
 def render_end_section():
     st.markdown('<div id="fin_de_cycle"></div>', unsafe_allow_html=True)
@@ -933,6 +1037,8 @@ def render_scrolling_dashboard():
     # Charger les données UNIQUEMENT pour la journée en cours
     #debut =datetime.strptime('2025-10-31', '%Y-%m-%d')
     today = datetime.now().date()
+    st.session_state.end_date = today  # Forcer la date de fin à aujourd'hui dans ce mode
+    st.session_state.start_date = today  # Forcer la date de début à aujourd'hui dans ce mode
     with st.spinner(f"Chargement des données ..."):
         df_all, df_queue = load_all_data(today, today)
         
@@ -970,6 +1076,7 @@ def render_scrolling_dashboard():
         "analyse_attente_hebdomadaire": (render_wait_time_analysis_section, {'df_queue': df_queue_filtered}),
         "supervision_monitoring": (render_supervision_monitoring_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
         "supervision_offline": (render_supervision_offline_section, {'df_queue': df_queue_filtered, 'df_agencies_regions': load_agencies_regions_info()}),
+        #"prediction_affluence": (render_prediction_section, {'df_queue_filtered': df_queue_filtered, 'conn': get_connection()}),
         # "fin_de_cycle": (render_end_section, {}),
     }
 

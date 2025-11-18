@@ -1127,7 +1127,10 @@ def echarts_satisfaction_gauge(queue_length, title="Client(s) en Attente",max_le
             "data": [
                 {
                     "value": value,
-                    "name": "Clients en Attente"
+                    "name": "Clients en Attente",
+                    "nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    }
                 }
             ],
           
@@ -1187,7 +1190,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
         # Get legend data from the pivoted DataFrame's columns
         "legend": {"data": df_pivoted.columns.tolist(),"top": "bottom"},
         "grid": {
-            "left": "5%",
+            "left": "10%",
             "right": "10%",
             "bottom": "10%", # Increase bottom margin for rotated labels
             "containLabel": True
@@ -1197,13 +1200,23 @@ def stacked_chart2(data,type:str,concern:str,titre):
             "type": "category",
             "data": df_pivoted.index.tolist(),
             "axisLabel": {
+                "fontWeight": "bold" ,
+              "color": 'black',
                 "rotate": 30,  # Rotate labels to prevent overlap
                 "interval": 0  # Ensure all labels are shown
             },
-            "name":"Agences"
+            "name":"Agences",
+            "nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    }
         },
         # Y-axis is the value axis
-        "yAxis": {"type": "value","name":"Valeur totale"},
+        "yAxis": {"type": "value","name":"Valeur totale","nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    },"axisLabel": {
+                "fontWeight": "bold" ,
+              "color": 'black',
+            }},
         # Create a series for each column in the pivoted DataFrame
         "series": [
             {
@@ -1281,6 +1294,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
         "type": "bar",
         "stack": "total",
         "emphasis": {"focus": "series"},
+        "label": {"show": True, "position": "inside"},
         "data": [
             {
                 "value": int(df_pivot_count.loc[user, category]),
@@ -1312,7 +1326,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
                 "top": "bottom"
             },
             "grid": {
-                "left": "3%",
+                "left": "10%",
                 "right": "10%",
                 "bottom": "10%",
                 "containLabel": True,
@@ -1322,13 +1336,22 @@ def stacked_chart2(data,type:str,concern:str,titre):
                     "type": "category",
                     "data": users,
                     "axisLabel": {
+                        "fontWeight": "bold" ,
+                        "color": 'black',
                         "rotate": 45,
                         "interval": 0
                     },
-                    "name":"Agents"
+                    "name":"Agents","nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    }
                 }
             ],
-            "yAxis": [{"type": "value", "name": "Valeur totale"}],
+            "yAxis": [{"type": "value", "name": "Valeur totale","nameTextStyle": {
+        "fontWeight": "bold","color":"black"
+    },"axisLabel": {
+                "fontWeight": "bold" ,
+              "color": 'black',
+            },}],
             "series": series_list,
         }
 
@@ -1680,7 +1703,9 @@ def area_graph2(data,concern='UserName',time='TempOperation',date_to_bin='Date_F
     
     "series": [
         {
-            "name": agence,
+            "name": agence, "nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    },
             "type": "bar",
             "stack": "total", # This key is what creates the stacking
             # "areaStyle": {},  # This is equivalent to Plotly's fill='tozeroy'
@@ -1761,10 +1786,18 @@ def top_agence_freq_echarts(df_all, df_queue, title, color=['#2ECC71', '#3498DB'
         "grid": {"left": "3%", "right": "4%", "bottom": "10%", "containLabel": True},
         "xAxis": {
             "type": "value",
+            "axisLabel": {
+                "fontWeight": "bold" ,
+              "color": 'black',
+            },
             # On place la chaîne littérale directement ici.
             #"axisLabel": {"formatter": "{function(value){return Math.abs(value);}}"}
         },
-        "yAxis": {"type": "category", "data": agences, "axisTick": {"show": False}},
+        "yAxis": {"type": "category", "data": agences, "axisTick": {"show": False},
+              "axisLabel": {
+                "fontWeight": "bold" ,
+              "color": 'black',
+            }},
         "series": [
             {
                 "name": series_name_1, "type": "bar", "stack": "total",
@@ -1864,6 +1897,7 @@ def GraphsGlob2(df_all,titre="",color=blue_color):
             "type": 'value', # The axis with numbers
             "boundaryGap": [0, 0.01],
             "axisLabel": {
+                "fontWeight": "bold" ,
                 "color": GraphicTitleColor,
                 "formatter": '{value} min' # Add units to the axis
             }
@@ -1874,6 +1908,8 @@ def GraphsGlob2(df_all,titre="",color=blue_color):
             # from the 'name' field in the series data
             "data": [item['name'] for item in chart_data],
             "axisLabel": {
+                "fontWeight": "bold" ,
+        
                 "color": GraphicTitleColor
             }
         },
@@ -2002,12 +2038,16 @@ def stacked_agent2(data,type:str,concern:str,titre="Nombre de type d'opération 
         "type": "category",
         "data": df_pivoted.index.tolist(),
         "axisLabel": {
+            "fontWeight": "bold" ,
+              "color": 'black',
             "rotate": 30,  # Rotate labels to prevent overlap
             "interval": 0  # Ensure all labels are shown
         },
     },
     # Y-axis is the value axis
-    "yAxis": {"type": "value"},
+    "yAxis": {"type": "value","axisLabel": {
+            "fontWeight": "bold" ,
+              "color": 'black'}},
     # Create a series for each column in the pivoted DataFrame
     "series": [
         {
@@ -2053,7 +2093,7 @@ def analyse_activity(data, type: str, concern: str, titre="Nombre de type d'opé
         "containLabel": True
     },
             
-            "series": [{"name": service_name, "type": 'pie', "radius": ['20%', '70%'],"label": {"show": True, "formatter": "{b}\n{c}"},
+            "series": [{"name": service_name, "type": 'pie', "radius": ['20%', '70%'],"label": {"show": True, "formatter": "{b}\n{c}","fontWeight": "bold" },
                         "roseType": 'area', "itemStyle": {"borderRadius": 8}, "data": data}]
         }
 
@@ -2064,7 +2104,7 @@ def analyse_activity(data, type: str, concern: str, titre="Nombre de type d'opé
             "title": {"text": f"{service_name}","left":"center"},"backgroundColor":BackgroundGraphicColor,
             "tooltip": {"trigger": "item", "formatter": "{b}: {c}"},
             
-            "series": [{"name": service_name, "type": 'funnel', "sort": 'descending', "gap": 2,"label": {"show": True, "position": 'inside', "formatter": '{b}\n{c}'},
+            "series": [{"name": service_name, "type": 'funnel', "sort": 'descending', "gap": 2,"label": {"show": True, "position": 'inside', "formatter": '{b}\n{c}',"fontWeight": "bold"},
                         "label": {"show": True, "position": 'inside'}, "data": data}]
         }
 
@@ -2073,7 +2113,7 @@ def analyse_activity(data, type: str, concern: str, titre="Nombre de type d'opé
         return {
             "title": {"text": f"{service_name}","left":"center"},"backgroundColor":BackgroundGraphicColor,
             "tooltip": {"formatter": '{b}: {c}'},
-            "series": [{"type": 'treemap', "data": data,  "label": {"show": True, "formatter": "{b}\n{c}"},
+            "series": [{"type": 'treemap', "data": data,  "label": {"show": True, "formatter": "{b}\n{c}","fontWeight": "bold"},
                         "itemStyle": {"borderColor": "#fff"}}]
         }
 
@@ -2141,6 +2181,8 @@ def Top10_Type(df_queue,title=""):
             "type": 'value', # The axis with numbers
             "boundaryGap": [0, 0.01],
             "axisLabel": {
+                "fontWeight": "bold" ,
+              
                 "color": GraphicTitleColor,
                 "formatter": '{value}' # Add units to the axis
             }
@@ -2151,6 +2193,8 @@ def Top10_Type(df_queue,title=""):
             # from the 'name' field in the series data
             "data": [item['name'] for item in chart_data],
             "axisLabel": {
+                "fontWeight": "bold" ,
+              
                 "color": GraphicTitleColor
             }
         },
@@ -2191,7 +2235,127 @@ def find_value_peak(df, person):
         df_person = df[df['UserName'] == person]
         return df_person['count'].max()
 
+def plot_line_chart_echarts(df):
+    """
+    Génère les options pour un graphique en ligne ECharts, en répliquant la logique
+    de la fonction Plotly originale pour un ou plusieurs jours.
+    """
+    # On vérifie qu'il y a des données pour éviter un crash
+    if df.empty:
+        return {"title": {"text": "Pas de données de performance agent disponibles"}}
 
+    # --- CAS 1 : DONNÉES SUR UN SEUL JOUR ---
+    if len(df['Date_Reservation'].dt.date.unique()) == 1:
+
+        grouped = df.groupby('UserName').size().reset_index(name='count')
+        
+        options = {"backgroundColor":BackgroundGraphicColor,
+            "title": {
+                "text": "Nombre d'Opérations par Agent",
+                "left": "center",
+                "textStyle": {"color": GraphicTitleColor}
+            },
+            "tooltip": {"trigger": "axis"},
+            "xAxis": {
+                "type": "category",
+                "name": "Agent(s)","nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    },
+                "data": grouped['UserName'].tolist(),
+                "axisLabel": {"rotate": 90, "interval": 0,"fontWeight": "bold",  # Met les étiquettes de l'axe X en gras
+            "color": 'black'} # Incline les noms pour la lisibilité
+            },
+            "yAxis": {"type": "value", "name": "Nombre d'Opérations","nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    },"axisLabel": {"fontWeight": "bold",  
+            "color": 'black'}},
+            "grid": {"bottom": "20%"}, # Plus d'espace pour les noms inclinés
+            "series": [{
+                "name": "Total Count",
+                "type": "line",
+                "data": grouped['count'].tolist(),
+                "mode": 'lines+markers+text', # Simule le mode de Plotly
+                "symbol": 'circle',
+                "symbolSize": 10,
+                "lineStyle": {"color": blue_color},
+                "itemStyle": {"color": blue_color},
+                "label": { # Pour afficher le texte au-dessus des points
+                    "show": True,
+                    "position": "top",
+                    "formatter": '{c}' # {c} est la syntaxe ECharts pour la valeur
+                }
+            }]
+        }
+        
+    # --- CAS 2 : DONNÉES SUR PLUSIEURS JOURS ---
+    else:
+        df['date'] = df['Date_Reservation'].dt.date
+        aggregated_df = df.groupby(['UserName', 'date']).size().reset_index(name='count')
+        
+        # On recrée l'axe X non-conventionnel de la fonction originale
+        aggregated_df['xAxisLabel'] = aggregated_df['UserName'] + ' = ' + aggregated_df['date'].astype(str)
+        
+        # On trouve les pics pour chaque agent
+        peaks_df = aggregated_df.loc[aggregated_df.groupby('UserName')['count'].idxmax()]
+        
+        # On crée une série par agent
+        series_data = []
+        all_agents = aggregated_df['UserName'].unique()
+        
+        for agent in all_agents:
+            agent_data = aggregated_df[aggregated_df['UserName'] == agent]
+            
+            # Données du pic pour cet agent (pour le markPoint)
+            agent_peak = peaks_df[peaks_df['UserName'] == agent]
+            peak_value = int(agent_peak['count'].iloc[0])
+            peak_label = agent_peak['xAxisLabel'].iloc[0]
+
+            series_data.append({
+                "name": agent,
+                "type": "line",
+                "data": list(zip(agent_data['xAxisLabel'], agent_data['count'])),
+                "symbol": 'circle',
+                "symbolSize": 8,
+                "markPoint": { # C'est la méthode ECharts pour mettre en évidence un point
+                    "symbolSize": 20,
+                    "label": {
+                        "show": True,
+                        "position": "top",
+                        "fontWeight": "bold",
+                        "formatter": str(peak_value) # On affiche directement la valeur du pic
+                    },
+                    "data": [
+                        {
+                            "coord": [peak_label, peak_value],
+                            "itemStyle": {"color": blue_color}
+                        }
+                    ]
+                }
+            })
+
+        options = {"backgroundColor": BackgroundGraphicColor,
+            "title": {
+                "text": "Nombre d'Opération par Agent",
+                "left": "center",
+                "textStyle": {"color": GraphicTitleColor}
+            },
+            "tooltip": {"trigger": "axis"},
+            "legend": {"type": "scroll", "bottom": 5},
+            "grid": {"left": "3%", "right": "4%", "bottom": "15%", "containLabel": True},
+            "xAxis": {
+                "type": "category",
+                "data": aggregated_df['xAxisLabel'].unique().tolist(),
+                "axisLabel": {"show": False,"axisLabel": {"fontWeight": "bold", 
+            "color": 'black'}} 
+            },
+            "yAxis": {"type": "value", "name": "Nombre d'Opérations","nameTextStyle": {
+        "fontWeight": "bold" ,"color":"black" # Met le nom de l'axe en gras
+    },"axisLabel": {"fontWeight": "bold", 
+            "color": 'black'}},
+            "series": series_data
+        }
+
+    return options
 
 def plot_line_chart(df):
     if len(df['Date_Reservation'].dt.date.unique())==1:
@@ -2324,6 +2488,8 @@ def create_bar_chart2(df, status,color=blue_color):
             "type": 'value', # The axis with numbers
             "boundaryGap": [0, 0.01],
             "axisLabel": {
+                "fontWeight": "bold" ,
+             
                 "color": GraphicTitleColor,
                 "formatter": '{value} min' # Add units to the axis
             }
@@ -2334,6 +2500,8 @@ def create_bar_chart2(df, status,color=blue_color):
             # from the 'name' field in the series data
             "data": [item['name'] for item in chart_data],
             "axisLabel": {
+                "fontWeight": "bold" ,
+            
                 "color": GraphicTitleColor
             }
         },
@@ -2401,6 +2569,7 @@ def create_pie_chart2(df, title='Traitée'):
       "type": 'pie',
       "radius": '50%',
       "data": chart_data,
+      "label": {"show": True,"fontWeight": "bold",'color':"black","formatter": '{b}: {c}'},
       "emphasis": {
         "itemStyle": {
           "shadowBlur": 10,
