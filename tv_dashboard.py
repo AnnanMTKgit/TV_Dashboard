@@ -4,7 +4,8 @@ import pandas as pd
 import time
 from streamlit.components.v1 import html
 from datetime import datetime
-
+import sys,os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Assurez-vous que shared_code.py est dans le même dossier
 try:
     from shared_code import *
