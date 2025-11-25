@@ -992,7 +992,7 @@ def render_configuration_page():
         st.header("Durée du Défilement")
         st.session_state.scroll_duration = st.number_input(
             "Temps de visualisation par section (secondes)", 
-            min_value=5, 
+            min_value=3, 
             value=st.session_state.get('scroll_duration', 15), 
             step=1,
             label_visibility="collapsed"
