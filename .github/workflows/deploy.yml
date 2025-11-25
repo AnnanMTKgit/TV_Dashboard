@@ -1,4 +1,4 @@
-name: Deploy Streamlit App
+name: Deploy Ma Nouvelle App
 
 on:
   push:
