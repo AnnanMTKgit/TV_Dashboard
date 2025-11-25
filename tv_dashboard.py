@@ -5,13 +5,11 @@ import time
 from streamlit.components.v1 import html
 from datetime import datetime
 import sys,os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# Assurez-vous que shared_code.py est dans le même dossier
-try:
-    from shared_code import *
-except ImportError:
-    st.error("ERREUR : Le fichier 'shared_code.py' est introuvable. Assurez-vous qu'il se trouve dans le même répertoire.")
-    st.stop()
+
+
+
+from shared_code import *
+
 
 # --- 1. CONFIGURATION DE LA PAGE & INITIALISATION ---
 st.set_page_config(page_title="Marlodj TV Dashboard", layout="wide", page_icon="📺")
