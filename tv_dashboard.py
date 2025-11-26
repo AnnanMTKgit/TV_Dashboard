@@ -345,12 +345,12 @@ def render_kpis_and_map_section(agg_global, df_all_filtered):
                     </div>
                 """, unsafe_allow_html=True)
 
-def render_top_sevice(df_all):
+def render_top_sevice(df_queue):
     st.markdown('<div id="top_sevice"></div>', unsafe_allow_html=True)
     title=SECTIONS["top_sevice"]['title']
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
-    figures_activity = analyse_activity(df_all, type='Type_Operation', concern='NomService')
+    figures_activity = analyse_activity(df_queue, type='Type_Operation', concern='NomService')
     # Cas 1 : La fonction n'a retourné AUCUN graphique
     c1, c2 = st.columns(2)
     if not figures_activity:
