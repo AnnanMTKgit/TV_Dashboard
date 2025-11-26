@@ -1066,7 +1066,7 @@ def render_scrolling_dashboard():
 
     render_functions = {
         "kpis_et_carte": (render_kpis_and_map_section,  {'agg_global': agence_global, 'df_all_filtered': df_all_filtered}),
-        "top_sevice": (render_top_sevice, {'df_all': df_all_filtered}),
+        "top_sevice": (render_top_sevice, {'df_queue': df_queue_filtered}),
         "analyse_agence_performance": (render_agency_analysis_performance_section, {'df_all': df_all_filtered}),
         "analyse_agence_frequentation": (render_agency_analysis_frequentation_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
         "analyse_service": (render_service_analysis_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
