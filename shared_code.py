@@ -675,7 +675,7 @@ def current_attente(df_queue,agence,HeureFermeture=None):
         var='En attente'
         
         df = df_queue.query(
-        f"(Nom == @var) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
+        f"(UserName.isna()) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
     )
         number=len(df)
         return number
@@ -3061,7 +3061,9 @@ def _apply_common_processing_steps_base(df_raw, all_known_agencies, fixed_min_da
     if not df_raw.empty:
         def _calculate_nb_attente_for_group(group_df):
             starts = group_df[['Date_Reservation']].copy(); starts.rename(columns={'Date_Reservation': 'time'}, inplace=True); starts['change'] = 1
-            ends = group_df[['Date_Fin']].dropna().copy(); ends.rename(columns={'Date_Fin': 'time'}, inplace=True); ends['change'] = -1
+            ends = group_df[['Date_Fin']].dropna().copy(); 
+            ends['Date_Fin'] = ends['Date_Fin'].fillna(group_df['Date_Reservation'] + pd.Timedelta(minutes=15))
+            ends.rename(columns={'Date_Fin': 'time'}, inplace=True); ends['change'] = -1
             events = pd.concat([starts, ends]).sort_values('time').reset_index(drop=True)
             events['active_clients'] = events['change'].cumsum()
             events['nb_attente'] = events['active_clients'].shift(1).fillna(0)
