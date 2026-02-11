@@ -30,8 +30,9 @@ df_all_filtered = df_all[df_all['NomAgence'].isin(st.session_state.selected_agen
 df_queue_filtered = df_queue[df_queue['NomAgence'].isin(st.session_state.selected_agencies)]
 
 if df_all_filtered.empty: 
-    st.error("Aucune donnée disponible pour la sélection.")
-    st.stop()
+    st.error("Donnée disponible seulement pour la prediction De l'affluence.")
+    stop=True
+    #st.stop()
 
 
 

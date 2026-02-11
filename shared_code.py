@@ -668,15 +668,16 @@ def current_attente(df_queue,agence,HeureFermeture=None):
 
         six_pm_datetime=datetime.combine(current_date, time_obj)
 
-    if current_datetime > six_pm_datetime:
+    if current_datetime >six_pm_datetime:
     
         return 0
     else:
         var='En attente'
         
         df = df_queue.query(
-        f"(Nom == @var) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
-    )
+        f"(UserName.isna()) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
+    )   
+        
         number=len(df)
         return number
 
@@ -822,7 +823,7 @@ def filter2(df_agence_Region):
     
     if not st.session_state.selected_agencies:
         st.sidebar.warning("Vous devez sélectionner au moins une agence.")
-        st.stop()
+        #st.stop()
 
     # --- FILTRE AGENCE ---
     st.sidebar.write(' ')
@@ -2876,13 +2877,15 @@ def _apply_common_processing_steps_base(df_raw, all_known_agencies, fixed_min_da
         df_raw.drop_duplicates(subset=['Date_Reservation', 'NomAgence'], inplace=True)
         df_raw.dropna(subset=['Date_Reservation'], inplace=True)
     agencies_in_raw_data = df_raw['NomAgence'].unique().tolist() if not df_raw.empty else []
-    agencies_to_process = sorted(list(set(all_known_agencies or []) | set(agencies_in_raw_data)))
+    agencies_to_process = sorted(list(set(all_known_agencies or []) | set(agencies_in_raw_data))) if len(agencies_in_raw_data) > 0 else all_known_agencies
     if not agencies_to_process: return None
     df_events_by_agency = pd.DataFrame(columns=['NomAgence', 'nb_attente'], index=pd.to_datetime([]))
     if not df_raw.empty:
         def _calculate_nb_attente_for_group(group_df):
             starts = group_df[['Date_Reservation']].copy(); starts.rename(columns={'Date_Reservation': 'time'}, inplace=True); starts['change'] = 1
-            ends = group_df[['Date_Fin']].dropna().copy(); ends.rename(columns={'Date_Fin': 'time'}, inplace=True); ends['change'] = -1
+            ends = group_df[['Date_Fin']].dropna().copy(); 
+            ends['Date_Fin'] = ends['Date_Fin'].fillna(group_df['Date_Reservation'] + pd.Timedelta(minutes=15))
+            ends.rename(columns={'Date_Fin': 'time'}, inplace=True); ends['change'] = -1
             events = pd.concat([starts, ends]).sort_values('time').reset_index(drop=True)
             events['active_clients'] = events['change'].cumsum()
             events['nb_attente'] = events['active_clients'].shift(1).fillna(0)
@@ -2963,7 +2966,10 @@ def run_prediction_pipeline(df_raw_actual, df_raw_past):
     N_FEATURES = len(FEATURES)
     
     
-    CURRENT_TIME = df_raw_actual['Date_Reservation'].max().round('H')
+    if not df_raw_actual.empty and 'Date_Reservation' in df_raw_actual.columns:
+        CURRENT_TIME = df_raw_actual['Date_Reservation'].max().round('H')
+    else:
+        CURRENT_TIME = pd.Timestamp.now().round('H')
                   
 
     # --- 2. Chargement des artefacts ---
@@ -2975,14 +2981,16 @@ def run_prediction_pipeline(df_raw_actual, df_raw_past):
         return None, None, None
 
     # --- 3. Prétraitement des données ---
-    all_agencies = df_raw_actual['NomAgence'].unique().tolist()
+    all_agencies = df_raw_actual['NomAgence'].unique().tolist() if not df_raw_actual.empty else st.session_state.all_agencies
     date_for_history = CURRENT_TIME.floor('D') - pd.Timedelta(days=1)
     
     
-
-    df_past_processed = _apply_common_processing_steps_base(df_raw_past, all_agencies, date_for_history.floor('D'), date_for_history.ceil('D') - pd.Timedelta(minutes=1), current_time_for_processing=CURRENT_TIME)
-    df_actual_processed = _apply_common_processing_steps_base(df_raw_actual, all_agencies, CURRENT_TIME.floor('D'), is_actual_data_processing=True, current_time_for_processing=CURRENT_TIME)
     
+    df_past_processed = _apply_common_processing_steps_base(df_raw_past, all_agencies, date_for_history.floor('D'), date_for_history.ceil('D') - pd.Timedelta(minutes=1), current_time_for_processing=CURRENT_TIME)
+    if not df_raw_actual.empty:
+        df_actual_processed = _apply_common_processing_steps_base(df_raw_actual, all_agencies, CURRENT_TIME.floor('D'), is_actual_data_processing=True, current_time_for_processing=CURRENT_TIME)
+    else:
+        df_actual_processed = _apply_common_processing_steps_base(df_raw_actual, all_agencies, CURRENT_TIME.floor('D'), is_actual_data_processing=False, current_time_for_processing=CURRENT_TIME)
     df_observed = pd.concat([df_past_processed, df_actual_processed])
     df_observed = df_observed[~df_observed.index.duplicated(keep='last')].sort_index()
     
