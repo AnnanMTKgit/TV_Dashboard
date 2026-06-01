@@ -387,6 +387,7 @@ def AgenceTable2(df_all, df_queue):
             return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
         df1 = df_all.copy()
+        df1 = df1[df1['Nom'] == 'Traitée'].copy()
         df2 = df_queue.copy()
 
         df1['Date_Reservation'] = pd.to_datetime(df1['Date_Reservation'])
@@ -400,16 +401,19 @@ def AgenceTable2(df_all, df_queue):
             df2[['NomAgence', 'Region', 'Capacites', 'Mois']]
         ]).drop_duplicates().reset_index(drop=True)
 
-        # ==================== DÉFINITION DES AGRÉGATIONS ====================
+        
+        # Votre dictionnaire devient beaucoup plus propre
+        
         agg_perf = {
             'Temps_Moyen_Operation': ('TempOperation', lambda x: np.mean(x) / 60),
             'Temps_Moyen_Attente': ('TempsAttenteReel', lambda x: np.mean(x) / 60),
-            'NombreTraites': ('Nom', lambda x:  (x == 'Traitée').sum()),
-            'NombreRejetee': ('Nom', lambda x: (x == 'Rejetée').sum()),
-            'NombrePassee': ('Nom', lambda x: (x == 'Passée').sum())
+            
         }
         
         agg_queue_agence = {
+            'NombreTraites': ('Nom', lambda x:  (x == 'Traitée').sum()),
+            'NombreRejetee': ('Nom', lambda x: (x == 'Rejetée').sum()),
+            'NombrePassee': ('Nom', lambda x: (x == 'Passée').sum()),
             'NombreTickets': ('Date_Reservation', 'count'),
             'TotalMobile': ('IsMobile', 'sum')
         }
