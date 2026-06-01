@@ -50,6 +50,7 @@ st.markdown("<br/>", unsafe_allow_html=True)
     reseau_global
 ) = AgenceTable2(df_all_filtered, df_queue_filtered)
 
+
 # --- 2. Création du sélecteur de vue dans l'interface Streamlit ---
 
 view_options = {

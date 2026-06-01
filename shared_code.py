@@ -101,10 +101,40 @@ def setup_auto_refresh(interval_minutes=10):
 class SQLQueries:
     def __init__(self):
         # ... (copiez votre classe SQLQueries ici)
-        self.AllQueueQueries = f""" SELECT u.FirstName,u.LastName,u.UserName,q.Date_Reservation,q.Date_Appel,q.TempAttenteMoyen,DATEDIFF(second, q.Date_Reservation, q.Date_Appel) as TempsAttenteReel,
-    q.Date_Fin,DATEDIFF(second, q.Date_Appel, q.Date_Fin) as TempOperation,q.IsMobile,e.Nom ,s.NomService,t.Label as Type_Operation,r.ReservationParHeure,
-    r.AgenceId,a.NomAgence,a.Capacites,a.Longitude,a.Latitude ,a.HeureFermeture, rg.Label Region FROM reservation r LEFT JOIN TypeOperation t ON t.Id=r.TypeOperationId LEFT JOIN queue q ON r.id = q.reservationId
-    LEFT JOIN Service s ON r.ServiceId = s.Id LEFT JOIN [User] u ON u.Id = q.userId LEFT JOIN Etat e ON e.Id = q.EtatId LEFT JOIN Agence a ON a.Id = r.AgenceId LEFT JOIN Region rg ON rg.Id=a.RegionId
+    #     self.AllQueueQueries = f""" SELECT u.FirstName,u.LastName,u.UserName,q.Date_Reservation,q.Date_Appel,q.TempAttenteMoyen,DATEDIFF(second, q.Date_Reservation, q.Date_Appel) as TempsAttenteReel,
+    # q.Date_Fin,DATEDIFF(second, q.Date_Appel, q.Date_Fin) as TempOperation,q.IsMobile,e.Nom ,s.NomService,t.Label as Type_Operation,r.ReservationParHeure,
+    # r.AgenceId,a.NomAgence,a.Capacites,a.Longitude,a.Latitude ,a.HeureFermeture, rg.Label Region FROM reservation r LEFT JOIN TypeOperation t ON t.Id=r.TypeOperationId LEFT JOIN queue q ON r.id = q.reservationId
+    # LEFT JOIN Service s ON r.ServiceId = s.Id LEFT JOIN [User] u ON u.Id = q.userId LEFT JOIN Etat e ON e.Id = q.EtatId LEFT JOIN Agence a ON a.Id = r.AgenceId LEFT JOIN Region rg ON rg.Id=a.RegionId
+    # WHERE Date_Reservation is not NULL and CAST(q.Date_Reservation AS DATE) BETWEEN CAST(? AS datetime) AND CAST(? AS datetime) 
+    # ORDER BY q.Date_Reservation DESC; """
+        
+        self.AllQueueQueries = f""" SELECT
+      [Date_Reservation]
+      ,[Date_Appel]
+      ,[TempAttenteMoyen]
+      ,DATEDIFF(second, q.Date_Reservation, q.Date_Appel) as TempsAttenteReel
+      ,[Date_Fin]
+      ,DATEDIFF(second, q.Date_Appel, q.Date_Fin) as TempOperation
+      ,u.[UserName]
+      ,q.[FirstName]
+      ,q.[LastName]
+      ,[Nom]
+      ,q.[AgenceId]
+      ,a.[NomAgence]
+      ,a.[Capacites]
+      ,a.[Longitude]
+      ,a.[Latitude]
+      ,a.[HeureFermeture]
+      ,rg.[Label] as Region
+      ,[ServiceId]
+      ,[NomService]
+      ,[TypeOperationId]
+      ,[Type_Operation]
+      ,[IsMobile]
+      
+      ,[ReservationParHeure]
+      ,[FetchedAt]
+  FROM [dbo].[QueueUnified] q LEFT JOIN [User] u ON u.Id = q.UserName LEFT JOIN Agence a ON a.Id = q.AgenceId LEFT JOIN Region rg ON rg.Id=a.RegionId
     WHERE Date_Reservation is not NULL and CAST(q.Date_Reservation AS DATE) BETWEEN CAST(? AS datetime) AND CAST(? AS datetime) 
     ORDER BY q.Date_Reservation DESC; """
 
@@ -374,7 +404,7 @@ def AgenceTable2(df_all, df_queue):
         agg_perf = {
             'Temps_Moyen_Operation': ('TempOperation', lambda x: np.mean(x) / 60),
             'Temps_Moyen_Attente': ('TempsAttenteReel', lambda x: np.mean(x) / 60),
-            'NombreTraites': ('Nom', lambda x: (x == 'Traitée').sum()),
+            'NombreTraites': ('Nom', lambda x:  (x == 'Traitée').sum()),
             'NombreRejetee': ('Nom', lambda x: (x == 'Rejetée').sum()),
             'NombrePassee': ('Nom', lambda x: (x == 'Passée').sum())
         }
@@ -389,14 +419,22 @@ def AgenceTable2(df_all, df_queue):
             'NombreTickets': ('Date_Reservation', 'count'),
             'TotalMobile': ('IsMobile', 'sum')
         }
-
+    
         # ==================== 1. VUE PAR AGENCE (inchangée) ====================
         agg1_mensuel = df1.groupby(['Mois', 'NomAgence', "Region", 'Capacites']).agg(**agg_perf).reset_index()
         agg2_mensuel = df2.groupby(['Mois', 'NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude']).agg(**agg_queue_agence).reset_index()
         agg1_global = df1.groupby(['NomAgence', "Region", 'Capacites']).agg(**agg_perf).reset_index()
         agg2_global = df2.groupby(['NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude']).agg(**agg_queue_agence).reset_index()
 
-        attente_actuelle = [] # ... (logique d'attente actuelle inchangée)
+        attente_actuelle = []
+        for agence in df2['NomAgence'].unique():
+            df_agence = df2[df2['NomAgence'] == agence]
+            if not df_agence.empty:
+                heure_fermeture = df_agence['HeureFermeture'].iloc[0]
+                attente = current_attente(df2, agence, heure_fermeture)
+                attente_actuelle.append({'NomAgence': agence, 'AttenteActuel': attente})
+        
+        attente_df = pd.DataFrame(attente_actuelle)
         if attente_actuelle:
             agg2_global = pd.merge(agg2_global, pd.DataFrame(attente_actuelle), on='NomAgence', how='left')
         else:
@@ -492,7 +530,7 @@ def AgenceTable(df_all, df_queue):
         agg1_global = df1.groupby(['NomAgence', "Region", 'Capacites']).agg(
             Temps_Moyen_Operation=('TempOperation', lambda x: np.mean(x) / 60),
             Temps_Moyen_Attente=('TempsAttenteReel', lambda x: np.mean(x) / 60),
-            NombreTraites=('Nom', lambda x: (x == 'Traitée').sum()),
+            NombreTraites=('Nom', lambda x: ((x == 'Traitée') | (x == 'Valider')).sum()),
             NombreRejetee=('Nom', lambda x: (x == 'Rejetée').sum()),
             NombrePassee=('Nom', lambda x: (x == 'Passée').sum())
         ).reset_index()
@@ -672,10 +710,10 @@ def current_attente(df_queue,agence,HeureFermeture=None):
     
         return 0
     else:
-        var='En attente'
+        var='En Attente'
         
         df = df_queue.query(
-        f"(UserName.isna()) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
+        f"(Nom == @var) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
     )   
         
         number=len(df)
@@ -2363,7 +2401,7 @@ def create_bar_chart2(df, status,color=blue_color):
 
 def create_pie_chart2(df, title='Traitée'):
    
-    df=df[df['Nom']==title]
+    df = df[df['Nom'].isin(['Traitée', 'Valider'])]
     if df.empty:
         return {"title": {"text": f"(Pas de données)", "left": 'center'}}
     top = df.groupby(by=['UserName'])['Nom'].count().reset_index()
