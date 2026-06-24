@@ -1,4 +1,4 @@
-name: Deploy Ma Nouvelle App
+name: Deploy Streamlit App
 
 on:
   push:
@@ -16,8 +16,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/tv_dashboard
+            cd /var/www/MonDashboard
             git pull origin main
             source venv/bin/activate
-            pip install --no-cache-dir -r requirements.txt
-            sudo systemctl restart streamlit-tv.service
+            pip install -r requirements.txt
+            sudo systemctl restart streamlit.service
