@@ -136,6 +136,17 @@ def scroll_to_anchor(anchor_id):
 @st.cache_data(ttl=600)
 def load_all_data(start_date, end_date):
     df_main = load_main_data(start_date, end_date)
+    # Enrichir avec Capacites/Latitude/Longitude réelles (absentes de l'API réservations,
+    # _map_api_to_df les met à 0/None par défaut) — même logique que create_sidebar_filters()
+    _rt = load_agencies_realtime()
+    if not _rt.empty and not df_main.empty:
+        _meta_cols = [c for c in ["NomAgence", "Capacites", "Latitude", "Longitude"] if c in _rt.columns]
+        df_main = df_main.drop(
+            columns=[c for c in ["Capacites", "Latitude", "Longitude"] if c in df_main.columns],
+            errors="ignore"
+        )
+        df_main = df_main.merge(_rt[_meta_cols], on="NomAgence", how="left")
+        df_main["Capacites"] = df_main["Capacites"].fillna(0).astype(int)
     df_all = df_main[df_main['UserName'].notna()].reset_index(drop=True)
     df_queue = df_main.copy()
     return df_all, df_queue
