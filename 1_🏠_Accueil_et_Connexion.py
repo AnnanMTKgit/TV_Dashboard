@@ -29,9 +29,7 @@ if 'logged_in' not in st.session_state:
 def initialize_session_state():
     """Initialise tous les états nécessaires après une connexion réussie."""
     st.cache_data.clear()
-    conn = get_connection()
-    all_agencies_df = run_query(conn, SQLQueries().All_Region_Agences)
-    
+    all_agencies_df = load_agencies_from_api()
     # Initialiser les filtres
     st.session_state.start_date = datetime.now().date()
     st.session_state.end_date = datetime.now().date()
@@ -39,32 +37,72 @@ def initialize_session_state():
     st.session_state.offline_agencies_in_scope = []
     # Initialiser les conteneurs de données et la clé de "cache manuel"
     st.session_state.df_main = pd.DataFrame()
-    st.session_state.last_filter_key = None # Pour forcer le premier chargement
+    st.session_state.last_filter_key = None
 
 
 def show_login_page():
     st.title("Connexion au Dashboard Marlodj")
-    conn = get_connection()
-    df_users = run_query(conn, SQLQueries().ProfilQueries)
-    users_dict = dict(zip(df_users['UserName'], df_users['MotDePasse']))
-    profiles_dict = dict(zip(df_users['UserName'], df_users['Profil']))
 
     with st.form("login_form"):
-        username = st.text_input("Nom d'utilisateur")
+        email    = st.text_input("Email")
         password = st.text_input("Mot de passe", type="password")
         submitted = st.form_submit_button("Se connecter")
 
         if submitted:
-            if users_dict.get(username) == password:
-                #st.stop()
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.session_state.user_profile = profiles_dict.get(username)
-                initialize_session_state()
-                st.rerun()
-                
-            else:
-                st.error("Nom d'utilisateur ou mot de passe incorrect.")
+            try:
+                # Vérifier d'abord les utilisateurs locaux (définis dans secrets.toml)
+                try:
+                    local_user = st.secrets["local_users"][email]
+                except (KeyError, Exception):
+                    local_user = None
+
+                if local_user is not None and password == local_user["password"]:
+                    # Utilisateur local validé — s'authentifier en arrière-plan avec le compte admin
+                    resp = requests.post(
+                        API_LOGIN_URL,
+                        json={"email": st.secrets["api"]["email"], "password": st.secrets["api"]["password"]},
+                        verify=False,
+                        timeout=10,
+                    )
+                    resp.raise_for_status()
+                    token = resp.json().get("token", "")
+                    local_role = local_user.get("role", "Admin") if hasattr(local_user, "get") else local_user["role"]
+                    st.session_state.logged_in    = True
+                    st.session_state.username     = local_user.get("display_name", email) if hasattr(local_user, "get") else local_user["display_name"]
+                    st.session_state.api_token    = token
+                    st.session_state.user_profile = (
+                        "Admin" if local_role.lower() in ("admin", "super_admin", "superadmin") else "Caissier"
+                    )
+                    initialize_session_state()
+                    st.rerun()
+                elif local_user is not None:
+                    # Utilisateur local trouvé mais mot de passe incorrect
+                    st.error("Email ou mot de passe incorrect.")
+                else:
+                    # Pas un utilisateur local → essayer directement l'API
+                    resp = requests.post(
+                        API_LOGIN_URL,
+                        json={"email": email, "password": password},
+                        verify=False,
+                        timeout=10,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        user  = data.get("user", {})
+                        token = data.get("token", "")
+                        role  = user.get("role", "").lower()
+                        st.session_state.logged_in    = True
+                        st.session_state.username     = user.get("name", email)
+                        st.session_state.api_token    = token
+                        st.session_state.user_profile = (
+                            "Admin" if role in ("admin", "super_admin", "superadmin") else "Caissier"
+                        )
+                        initialize_session_state()
+                        st.rerun()
+                    else:
+                        st.error("Email ou mot de passe incorrect.")
+            except Exception as e:
+                st.error(f"Erreur de connexion à l'API : {e}")
 
 # Main logic
 

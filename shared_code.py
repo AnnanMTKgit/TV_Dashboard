@@ -19,7 +19,6 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import plotly.io as pio
 import copy
-import pyodbc
 import altair as alt
 import seaborn as sns
 import plotly.figure_factory as ff
@@ -32,6 +31,12 @@ from openpyxl.utils import get_column_letter ##
 from openpyxl.worksheet.table import Table, TableStyleInfo ##
 import base64
 import math
+import requests
+
+try:
+    import pyodbc
+except ImportError:
+    pyodbc = None
 
 # import pyspark
 # from pyspark.sql import SparkSession, Window, DataFrame
@@ -260,7 +265,9 @@ def get_connection():
         """)
         st.stop()
 
-@st.cache_data(hash_funcs={pyodbc.Connection: id}, ttl=3600, show_spinner=False)  # Cache 1h
+_pyodbc_hash_funcs = {pyodbc.Connection: id} if pyodbc else {}
+
+@st.cache_data(hash_funcs=_pyodbc_hash_funcs, ttl=3600, show_spinner=False)  # Cache 1h
 def run_query_cached(_connection, sql, params):
     """Cache intelligent pour les requêtes lourdes avec TTL de 1h"""
     try:
@@ -405,9 +412,8 @@ def AgenceTable2(df_all, df_queue):
         # Votre dictionnaire devient beaucoup plus propre
         
         agg_perf = {
-            'Temps_Moyen_Operation': ('TempOperation', lambda x: np.mean(x) / 60),
-            'Temps_Moyen_Attente': ('TempsAttenteReel', lambda x: np.mean(x) / 60),
-            
+            'Temps_Moyen_Operation': ('TempOperation', lambda x: float(np.nanmean(x) / 60) if len(x) > 0 else 0.0),
+            'Temps_Moyen_Attente': ('TempsAttenteReel', lambda x: float(np.nanmean(x) / 60) if len(x) > 0 else 0.0),
         }
         
         agg_queue_agence = {
@@ -426,9 +432,9 @@ def AgenceTable2(df_all, df_queue):
     
         # ==================== 1. VUE PAR AGENCE (inchangée) ====================
         agg1_mensuel = df1.groupby(['Mois', 'NomAgence', "Region", 'Capacites']).agg(**agg_perf).reset_index()
-        agg2_mensuel = df2.groupby(['Mois', 'NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude']).agg(**agg_queue_agence).reset_index()
+        agg2_mensuel = df2.groupby(['Mois', 'NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude'], dropna=False).agg(**agg_queue_agence).reset_index()
         agg1_global = df1.groupby(['NomAgence', "Region", 'Capacites']).agg(**agg_perf).reset_index()
-        agg2_global = df2.groupby(['NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude']).agg(**agg_queue_agence).reset_index()
+        agg2_global = df2.groupby(['NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude'], dropna=False).agg(**agg_queue_agence).reset_index()
 
         attente_actuelle = []
         for agence in df2['NomAgence'].unique():
@@ -532,15 +538,15 @@ def AgenceTable(df_all, df_queue):
         ##### Agrégation Globale Directe ############
         # Agrégation des données de performance (df1)
         agg1_global = df1.groupby(['NomAgence', "Region", 'Capacites']).agg(
-            Temps_Moyen_Operation=('TempOperation', lambda x: np.mean(x) / 60),
-            Temps_Moyen_Attente=('TempsAttenteReel', lambda x: np.mean(x) / 60),
+            Temps_Moyen_Operation=('TempOperation', lambda x: float(np.nanmean(x) / 60) if len(x) > 0 else 0.0),
+            Temps_Moyen_Attente=('TempsAttenteReel', lambda x: float(np.nanmean(x) / 60) if len(x) > 0 else 0.0),
             NombreTraites=('Nom', lambda x: ((x == 'Traitée') | (x == 'Valider')).sum()),
             NombreRejetee=('Nom', lambda x: (x == 'Rejetée').sum()),
             NombrePassee=('Nom', lambda x: (x == 'Passée').sum())
         ).reset_index()
 
         # Agrégation des données de queue (df2)
-        agg2_global = df2.groupby(['NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude']).agg(
+        agg2_global = df2.groupby(['NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude'], dropna=False).agg(
             NombreTickets=('Date_Reservation', 'count'),
             TotalMobile=('IsMobile', 'sum')
         ).reset_index()
@@ -700,28 +706,26 @@ def current_attente(df_queue,agence,HeureFermeture=None):
 
         for fmt in formats_to_try:
             try:
-                # Try to parse the string with the current format
                 time_obj = datetime.strptime(HeureFermeture, fmt).time()
                 break
             except ValueError:
-                # If it fails, just continue to the next format
                 continue
-        #time_obj =datetime.strptime(HeureFermeture, "%H:%M").time()
+        else:
+            # Aucun format n'a correspondu → fallback 18h00
+            time_obj = datetime.strptime("18:00", "%H:%M").time()
 
-        six_pm_datetime=datetime.combine(current_date, time_obj)
+        six_pm_datetime = datetime.combine(current_date, time_obj)
 
     if current_datetime >six_pm_datetime:
     
         return 0
     else:
-        var='En Attente'
-        
-        df = df_queue.query(
-        f"(Nom == @var) & (Date_Reservation.dt.strftime('%Y-%m-%d') == '{current_date}') & (NomAgence == @agence)"
-    )   
-        
-        number=len(df)
-        return number
+        mask = (
+            (df_queue['Nom'].str.lower() == 'en attente') &
+            (df_queue['Date_Reservation'].dt.strftime('%Y-%m-%d') == str(current_date)) &
+            (df_queue['NomAgence'] == agence)
+        )
+        return int(mask.sum())
 
 
 # --- Composants UI Partagés ---
@@ -816,10 +820,10 @@ def filter2(df_agence_Region):
 
     # --- Préparation des données ---
     df_main = st.session_state.df_main
-    online_regions = sorted(df_main['Region'].unique().tolist())
-    all_online_agencies = sorted(df_main['NomAgence'].unique().tolist())
+    online_regions = sorted([r for r in df_main['Region'].unique().tolist() if r is not None and pd.notna(r)])
+    all_online_agencies = sorted([a for a in df_main['NomAgence'].unique().tolist() if a is not None and pd.notna(a)])
     
-    all_regions_total = df_agence_Region['Region'].unique().tolist()
+    all_regions_total = [r for r in df_agence_Region['Region'].unique().tolist() if r is not None and pd.notna(r)]
     offline_regions = sorted([r for r in all_regions_total if r not in online_regions])
     
     agency_display_map = {row['NomAgence']: f"{row['NomAgence']} ({row['Region']})" for _, row in df_agence_Region.iterrows()}
@@ -914,17 +918,225 @@ def filter2(df_agence_Region):
         
         st.write(f"✅ {len(st.session_state.selected_agencies)}/{len(all_online_agencies)} Agence(s) sélectionnée(s)") 
         
-@st.cache_data(ttl=1800, show_spinner=False)  # Cache 30min pour les données principales
-def load_main_data(start_date, end_date):
-    """Charge les données principales une seule fois et les met en cache"""
-    conn = get_connection()
-    df = run_query(conn, SQLQueries().AllQueueQueries, params=(start_date, end_date))
+API_BASE_URL                   = "https://93-127-143-233.nip.io/kpis"
+API_AGENCIES_URL               = f"{API_BASE_URL}/api/kpis/unified/reservations"
+API_LOGIN_URL                  = f"{API_BASE_URL}/api/auth/login"
+API_RESERVATIONS_URL           = f"{API_BASE_URL}/api/kpis/unified/reservations"
+API_AGENCIES_DISPONIBILITE_URL = "https://93-127-143-233.nip.io/api/agences/disponibilite"
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def load_agencies_from_api() -> pd.DataFrame:
+    """Charge la liste des agences.
+
+    Tente d'abord /api/agences/disponibilite (pas d'auth, Capacites réelles).
+    Si indisponible, repli sur l'endpoint réservations (30 derniers jours).
+    """
+    # --- Tentative 1 : nouvel endpoint temps réel ---
+    try:
+        resp = requests.get(API_AGENCIES_DISPONIBILITE_URL, verify=False, timeout=15)
+        resp.raise_for_status()
+        df = pd.DataFrame(resp.json())
+        if not df.empty and "nomAgence" in df.columns:
+            df = df.rename(columns={
+                "nomAgence":  "NomAgence",
+                "regionName": "Region",
+                "capacites":  "Capacites",
+                "longitude":  "Longitude",
+                "latitude":   "Latitude",
+            })
+            df["Adresse"]        = ""
+            df["Pays"]           = ""
+            if "Longitude" not in df.columns: df["Longitude"] = None
+            if "Latitude"  not in df.columns: df["Latitude"]  = None
+            df["Longitude"] = pd.to_numeric(df["Longitude"], errors="coerce").replace(0.0, float("nan"))
+            df["Latitude"]  = pd.to_numeric(df["Latitude"],  errors="coerce").replace(0.0, float("nan"))
+            df["HeureFermeture"] = "18:00"
+            df["HeureDemarrage"] = "08:00"
+            df["Status"]         = (~df["suspensionActivite"].astype(bool)).astype(int)
+            return df[["Region", "NomAgence", "Adresse", "Pays",
+                        "Longitude", "Latitude", "Capacites",
+                        "HeureDemarrage", "HeureFermeture", "Status"]].drop_duplicates(subset=["NomAgence"])
+    except Exception:
+        pass  # repli ci-dessous
+
+    # --- Tentative 2 : repli sur les réservations des 30 derniers jours ---
+    try:
+        from datetime import date, timedelta
+        token      = get_api_token()
+        headers    = {"Authorization": f"Bearer {token}"}
+        date_fin   = date.today().strftime("%Y-%m-%d")
+        date_debut = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+        params     = {"date_debut": date_debut, "date_fin": date_fin, "page_size": 1000, "page": 1}
+        resp = requests.get(API_AGENCIES_URL, headers=headers, params=params, verify=False, timeout=60)
+        resp.raise_for_status()
+        rows = resp.json().get("data", [])
+        if not rows:
+            return pd.DataFrame(columns=["Region", "NomAgence", "Capacites"])
+        df = pd.DataFrame(rows).rename(columns={"agenceNom": "NomAgence", "regionLabel": "Region"})
+        for col, default in [("Adresse", ""), ("Pays", ""), ("Longitude", None), ("Latitude", None),
+                              ("Capacites", 0), ("HeureFermeture", "18:00"),
+                              ("HeureDemarrage", "08:00"), ("Status", 1)]:
+            if col not in df.columns:
+                df[col] = default
+        return df[["Region", "NomAgence", "Adresse", "Pays",
+                    "Longitude", "Latitude", "Capacites",
+                    "HeureDemarrage", "HeureFermeture", "Status"]].drop_duplicates(subset=["NomAgence"])
+    except Exception:
+        return pd.DataFrame(columns=["Region", "NomAgence", "Adresse", "Pays",
+                                     "Longitude", "Latitude", "Capacites",
+                                     "HeureDemarrage", "HeureFermeture", "Status"])
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def load_agencies_realtime() -> pd.DataFrame:
+    """Données temps réel par agence (cache 60 s, sans auth).
+
+    Colonnes : NomAgence, Region, Capacites, Longitude, Latitude,
+               ClientsEnAttente, AttenteParService (list[dict]),
+               SuspensionActivite, ActivationReservation.
+    ClientsEnAttente est calculé depuis les réservations en cours côté backend.
+    """
+    try:
+        resp = requests.get(API_AGENCIES_DISPONIBILITE_URL, verify=False, timeout=15)
+        resp.raise_for_status()
+        df = pd.DataFrame(resp.json())
+        df = df.rename(columns={
+            "nomAgence":             "NomAgence",
+            "regionName":            "Region",
+            "capacites":             "Capacites",
+            "longitude":             "Longitude",
+            "latitude":              "Latitude",
+            "clientsEnAttente":      "ClientsEnAttente",
+            "attenteParService":     "AttenteParService",
+            "suspensionActivite":    "SuspensionActivite",
+            "activationReservation": "ActivationReservation",
+        })
+        if "Longitude"        not in df.columns: df["Longitude"]        = None
+        if "Latitude"         not in df.columns: df["Latitude"]         = None
+        if "AttenteParService" not in df.columns: df["AttenteParService"] = [[] for _ in range(len(df))]
+        df["Longitude"] = pd.to_numeric(df["Longitude"], errors="coerce").replace(0.0, float("nan"))
+        df["Latitude"]  = pd.to_numeric(df["Latitude"],  errors="coerce").replace(0.0, float("nan"))
+        return df[["NomAgence", "Region", "Capacites", "Longitude", "Latitude",
+                   "ClientsEnAttente", "AttenteParService",
+                   "SuspensionActivite", "ActivationReservation"]]
+    except Exception:
+        return pd.DataFrame(columns=["NomAgence", "Region", "Capacites", "Longitude", "Latitude",
+                                     "ClientsEnAttente", "AttenteParService",
+                                     "SuspensionActivite", "ActivationReservation"])
+
+
+@st.cache_data(ttl=3000, show_spinner=False)
+def get_api_token() -> str:
+    credentials = {
+        "email":    st.secrets["api"]["email"],
+        "password": st.secrets["api"]["password"],
+    }
+    resp = requests.post(API_LOGIN_URL, json=credentials, verify=False, timeout=30)
+    resp.raise_for_status()
+    return resp.json()["token"]
+
+
+def _map_api_to_df(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.rename(columns={
+        "agenceNom":          "NomAgence",
+        "regionLabel":        "Region",
+        "serviceNom":         "NomService",
+        "typeOperationLabel": "Type_Operation",
+        "userName":           "UserName",
+        "dateReservation":    "Date_Reservation",
+        "dateAppel":          "Date_Appel",
+        "dateFin":            "Date_Fin",
+        "etatNom":            "Nom",
+    })
+    # Normaliser la casse de la région — l'API retourne "DAKAR" et "Dakar" en même temps
+    if "Region" in df.columns:
+        df["Region"] = df["Region"].str.strip().str.title()
+    if "NomAgence" in df.columns:
+        df["NomAgence"] = df["NomAgence"].str.strip()
+    # Corriger le double encodage UTF-8 sur le champ statut (si présent)
+    def _fix_encoding(x):
+        if not isinstance(x, str):
+            return x
+        try:
+            return x.encode("latin-1").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return x  # Déjà correctement encodé, on garde tel quel
+    df["Nom"] = df["Nom"].apply(_fix_encoding)
+    df["Date_Reservation"] = pd.to_datetime(df["Date_Reservation"], errors="coerce")
+    df["Date_Appel"]       = pd.to_datetime(df["Date_Appel"],       errors="coerce")
+    df["Date_Fin"]         = pd.to_datetime(df["Date_Fin"],         errors="coerce")
+    # Recalcul depuis les timestamps — identique au DATEDIFF SQL (secondes)
+    # tempsAttenteMin peut être 0 ou null côté API ; le diff de dates est toujours fiable.
+    # On garde float (pas Int64) : NaN float est compatible avec np.mean/np.round ;
+    # pd.NA (Int64 nullable) ne l'est pas.
+    df["TempsAttenteReel"] = (
+        (df["Date_Appel"] - df["Date_Reservation"]).dt.total_seconds().clip(lower=0)
+    )
+    df["TempOperation"] = (
+        (df["Date_Fin"] - df["Date_Appel"]).dt.total_seconds().clip(lower=0)
+    )
+    df["IsMobile"] = df["isMobile"].astype(int)
+    # Métadonnées agence non fournies par l'API — valeurs de fallback
+    df["Capacites"]      = 0
+    df["Longitude"]      = None
+    df["Latitude"]       = None
+    df["HeureFermeture"] = "18:00"
     return df
 
-def create_sidebar_filters():
-    
-    
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def load_from_api(start_date: str, end_date: str) -> pd.DataFrame:
+    token = get_api_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    all_records = []
+    page = 1
+    while True:
+        params = {
+            "date_debut": start_date,
+            "date_fin":   end_date,
+            "page":       page,
+            "page_size":  1000,
+        }
+        resp = requests.get(
+            API_RESERVATIONS_URL, headers=headers, params=params,
+            verify=False, timeout=60
+        )
+        resp.raise_for_status()
+        body = resp.json()
+        all_records.extend(body["data"])
+        if page >= body["pages"]:
+            break
+        page += 1
+    if not all_records:
+        # Retourner un DataFrame vide avec les colonnes attendues par le pipeline
+        return pd.DataFrame(columns=[
+            "NomAgence", "Region", "NomService", "Type_Operation", "UserName",
+            "Date_Reservation", "Date_Appel", "Date_Fin", "Nom",
+            "TempsAttenteReel", "TempOperation", "IsMobile",
+            "Capacites", "Longitude", "Latitude", "HeureFermeture",
+        ])
+    return _map_api_to_df(pd.DataFrame(all_records))
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def load_main_data(start_date, end_date):
+    """Charge les données principales via l'API REST (paginée)."""
+    return load_from_api(
+        start_date.strftime("%Y-%m-%d"),
+        end_date.strftime("%Y-%m-%d"),
+    )
+
+def create_sidebar_filters():
+    # Initialiser les clés de session manquantes (ex: refresh direct sur une page)
+    today = datetime.now().date()
+    if "start_date"               not in st.session_state: st.session_state.start_date               = today
+    if "end_date"                 not in st.session_state: st.session_state.end_date                 = today
+    if "selected_agencies"        not in st.session_state: st.session_state.selected_agencies        = []
+    if "selected_Region"          not in st.session_state: st.session_state.selected_Region          = []
+    if "offline_agencies_in_scope" not in st.session_state: st.session_state.offline_agencies_in_scope = []
+    if "df_main"                  not in st.session_state: st.session_state.df_main                  = pd.DataFrame()
+    if "last_date_range"          not in st.session_state: st.session_state.last_date_range          = None
 
     # Rendu des date_input avec valeur actuelle
     start_date = st.sidebar.date_input("Date Début", value=st.session_state.start_date, key="start_date_input")
@@ -940,20 +1152,42 @@ def create_sidebar_filters():
         st.error("La date de début ne peut pas être après la date de fin.")
         st.stop()
 
-    # Charger les données principales une seule fois
+    # Données temps réel — toujours rechargées (cache TTL=60 s gère le débit)
+    st.session_state.agencies_realtime = load_agencies_realtime()
+
+    # Charger les données principales une seule fois (re-chargement si plage de dates change)
     if "df_main" not in st.session_state or st.session_state.get("last_date_range") != (start_date, end_date):
-        
+
         with st.spinner("Chargement des données..."):
             st.session_state.df_main = load_main_data(start_date, end_date)
             st.session_state.last_date_range = (start_date, end_date)
-            st.session_state.selected_Region =st.session_state.df_main['Region'].unique().tolist()
-            st.session_state.selected_agencies = st.session_state.df_main['NomAgence'].unique().tolist()
+            # Enrichir df_main avec Capacites, Latitude, Longitude réelles
+            _rt = st.session_state.agencies_realtime
+            if not _rt.empty and not st.session_state.df_main.empty:
+                _meta_cols = [c for c in ["NomAgence", "Capacites", "Latitude", "Longitude"] if c in _rt.columns]
+                st.session_state.df_main = st.session_state.df_main.drop(
+                    columns=[c for c in ["Capacites", "Latitude", "Longitude"] if c in st.session_state.df_main.columns],
+                    errors="ignore"
+                )
+                st.session_state.df_main = st.session_state.df_main.merge(
+                    _rt[_meta_cols], on="NomAgence", how="left"
+                )
+                st.session_state.df_main["Capacites"] = (
+                    st.session_state.df_main["Capacites"].fillna(0).astype(int)
+                )
+            _df = st.session_state.df_main
+            if not _df.empty and 'Region' in _df.columns:
+                st.session_state.selected_Region   = _df['Region'].unique().tolist()
+                st.session_state.selected_agencies = _df['NomAgence'].unique().tolist()
+            else:
+                # Aucune donnée pour la période → fallback sur les métadonnées agences
+                _meta = st.session_state.get('all_agence_Region', pd.DataFrame())
+                st.session_state.selected_Region   = _meta['Region'].unique().tolist()   if not _meta.empty else []
+                st.session_state.selected_agencies = _meta['NomAgence'].unique().tolist() if not _meta.empty else []
     # Initialiser dans st.session_state si la clé n'existe pas
     if "all_agence_Region" not in st.session_state :
-        
-        conn = get_connection()
-        df_Agence_Regionx = run_query(conn, SQLQueries().All_Region_Agences,params=None)
-        st.session_state.all_agence_Region=df_Agence_Regionx
+        df_Agence_Regionx = load_agencies_from_api()
+        st.session_state.all_agence_Region = df_Agence_Regionx
         AllRegion = df_Agence_Regionx['Region'].unique().tolist()
         st.session_state.all_Region = AllRegion
        
@@ -1027,25 +1261,29 @@ def create_folium_map(agg):
         width="100%",
         height="100%"
     )
-    # Générer des polygones et marqueurs par ville
-    for ville, group in df.groupby("Region"):
+    # Générer des polygones et marqueurs par ville (uniquement si coordonnées disponibles)
+    df_geo = df.dropna(subset=["Latitude", "Longitude"])
+    for ville, group in df_geo.groupby("Region"):
         min_lat, max_lat = group["Latitude"].min(), group["Latitude"].max()
         min_lon, max_lon = group["Longitude"].min(), group["Longitude"].max()
 
-        # Définition du polygone (bounding box)
-        polygon_coords = [
-            [min_lat, min_lon], [max_lat, min_lon],
-            [max_lat, max_lon], [min_lat, max_lon],
-            [min_lat, min_lon]
-        ]
-        folium.Polygon(
-            locations=polygon_coords,
-            color="black",
-            fill=True,
-            fill_color="gray",
-            fill_opacity=0.2,
-            popup=f"Région: {ville}"
-        ).add_to(m)
+        # Définition du polygone (bounding box) — skip si coordonnées identiques
+        if min_lat == max_lat and min_lon == max_lon:
+            pass
+        else:
+            polygon_coords = [
+                [min_lat, min_lon], [max_lat, min_lon],
+                [max_lat, max_lon], [min_lat, max_lon],
+                [min_lat, min_lon]
+            ]
+            folium.Polygon(
+                locations=polygon_coords,
+                color="black",
+                fill=True,
+                fill_color="gray",
+                fill_opacity=0.2,
+                popup=f"Région: {ville}"
+            ).add_to(m)
 
         # Ajouter les marqueurs avec popups
         for _, row in group.iterrows():
@@ -1055,10 +1293,9 @@ def create_folium_map(agg):
                 f"<b>Client en Attente:</b> {row['AttenteActuel']} <br>"
                 f"<b>Temps Moyen d'Attente:</b> {row['Temps_Moyen_Attente']} min"
             )
-
             folium.Marker(
                 location=[row["Latitude"], row["Longitude"]],
-                tooltip=popup_text,  # Affichage au survol
+                tooltip=popup_text,
                 popup=folium.Popup(popup_text, max_width=300),
                 icon=folium.Icon(color=agence_couleur[row["NomAgence"]], icon="info-sign")
             ).add_to(m)
@@ -1077,7 +1314,7 @@ def echarts_satisfaction_gauge(queue_length, title="Client(s) en Attente",max_le
    
     
     # --- Determine Pointer Color based on Gauge Progress ---
-    current_percentage = value / max_value
+    current_percentage = value / max_value if max_value > 0 else 0
     
     pointer_color = '#FF0000' if value >= max_value else ('black' if current_percentage ==0 else
         green_color if current_percentage < 0.5 else blue_clair_color if current_percentage < 0.8 else blue_color
@@ -2325,10 +2562,10 @@ def create_bar_chart2(df, status,color=blue_color):
     if df_filtered.empty:
         return {"title": {"text": f"(Pas de données)", "left": 'center'}}
 
-    # Your data processing is correct
     top = df_filtered.groupby(by=['UserName']).agg(
-        TempOperation=('TempOperation', lambda x: np.round(np.mean(x) / 60))
+        TempOperation=('TempOperation', lambda x: float(np.round(np.nanmean(x) / 60)))
     ).reset_index()
+    top['TempOperation'] = top['TempOperation'].fillna(0)  # nanmean sur groupe 100% NaN → 0
     top = top.sort_values(by='TempOperation', ascending=True)
 
     # Renaming is also correct for ECharts
@@ -2496,8 +2733,10 @@ def ServiceTable(df,status="Traitée"):
     df1=df.copy()
     df1=df1[df1["Nom"]==status]
     agg = df1.groupby(['UserName']).agg(
-    TMO=('TempOperation', lambda x: np.round(np.mean(x)/60).astype(int)),NombreTickets=('Nom','size'),
-TotalMobile=('IsMobile',lambda x: (x==1).sum())).reset_index()
+        TMO=('TempOperation', lambda x: int(np.round(np.nanmean(x) / 60)) if not np.isnan(np.nanmean(x)) else 0),
+        NombreTickets=('Nom', 'size'),
+        TotalMobile=('IsMobile', lambda x: (x == 1).sum()),
+    ).reset_index()
     
     
     return agg
@@ -2903,7 +3142,14 @@ def run_analysis_pipeline(_df_source, filtrer_semaine=True):
 
 import holidays
 from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import LSTM as _KerasLSTM
 from joblib import load
+
+class _LSTMCompat(_KerasLSTM):
+    """Wrapper qui ignore time_major pour la compatibilité h5 Keras 2 → Keras 3."""
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('time_major', None)
+        super().__init__(*args, **kwargs)
 \
 
 # ==============================================================================
@@ -2982,9 +3228,9 @@ def _apply_common_processing_steps_base(df_raw, all_known_agencies, fixed_min_da
 @st.cache_resource
 def load_model_and_scaler():
     """Charge le modèle et le scaler depuis le disque. Mis en cache pour toute la session."""
-    
+    _compat = {'LSTM': _LSTMCompat}
     try:
-        model = load_model('final_lstm_model.h5')
+        model = load_model('final_lstm_model.h5', custom_objects=_compat)
         scaler = load('final_scaler.gz')
         return model, scaler
     except Exception as e:
@@ -3016,7 +3262,7 @@ def run_prediction_pipeline(df_raw_actual, df_raw_past):
 
     # --- 2. Chargement des artefacts ---
     try:
-        model = load_model('final_lstm_model.h5')
+        model = load_model('final_lstm_model.h5', custom_objects={'LSTM': _LSTMCompat})
         scaler = load('final_scaler.gz')
     except Exception as e:
         st.error(f"Erreur lors du chargement du modèle ou du scaler : {e}")

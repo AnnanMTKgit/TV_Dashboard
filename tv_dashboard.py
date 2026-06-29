@@ -132,19 +132,17 @@ def scroll_to_anchor(anchor_id):
     # Ici, nous allons simuler l'appel pour l'exemple.
     st.components.v1.html(js_code, height=0)
 
-# --- 3. CHARGEMENT CENTRALISÉ DES DONNÉES ---
+# --- 3. CHARGEMENT CENTRALISÉ DES DONNÉES (via l'API REST) ---
 @st.cache_data(ttl=600)
 def load_all_data(start_date, end_date):
-    conn = get_connection()
-    df_main = run_query(conn, SQLQueries().AllQueueQueries, params=(start_date, end_date))
+    df_main = load_main_data(start_date, end_date)
     df_all = df_main[df_main['UserName'].notna()].reset_index(drop=True)
     df_queue = df_main.copy()
     return df_all, df_queue
 
 @st.cache_resource
 def load_agencies_regions_info():
-    conn = get_connection()
-    return run_query(conn, SQLQueries().All_Region_Agences, params=None)
+    return load_agencies_from_api()
 
 # --- 4. FONCTIONS DE RENDU (Inchangées) ---
 # --- NOUVELLE FONCTION CIRCLE AMÉLIORÉE ---

@@ -35,10 +35,11 @@ Kpi = Kpi.rename(columns={"UserName": "Nombre_Agents"})
 
 
 
-cols = st.columns(len(Kpi))  # une colonne par service
-for i, row in Kpi.iterrows():
-    with cols[i]:
-        st.metric(label="Nombre Agents " + row["NomService"], value=row["Nombre_Agents"])
+if not Kpi.empty:
+    cols = st.columns(len(Kpi))  # une colonne par service
+    for i, row in Kpi.iterrows():
+        with cols[i]:
+            st.metric(label="Nombre Agents " + row["NomService"], value=row["Nombre_Agents"])
 
 st.markdown("<br/>", unsafe_allow_html=True)
 

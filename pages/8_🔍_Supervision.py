@@ -19,12 +19,10 @@ if not st.session_state.get('logged_in'):
 
 
 create_sidebar_filters()
-conn = get_connection()
-df = run_query(conn, SQLQueries().AllQueueQueries, params=(st.session_state.start_date, st.session_state.end_date))
-df_all = df[df['UserName'].notna()].reset_index(drop=True)
-df_queue=df.copy()
-
-df_rh = run_query(conn, SQLQueries().RendezVousQueries, params=(st.session_state.start_date, st.session_state.end_date))
+df       = st.session_state.df_main.copy()
+df_all   = df[df['UserName'].notna()].reset_index(drop=True)
+df_queue = df.copy()
+df_rh    = pd.DataFrame()  # RendezVous non disponible via API pour l'instant
 
 df_all_filtered = df_all[df_all['NomAgence'].isin(st.session_state.selected_agencies)]
 df_queue_filtered = df_queue[df_queue['NomAgence'].isin(st.session_state.selected_agencies)]
@@ -157,10 +155,16 @@ if selected_tab == SUPERVISION_TABS[0]:
         col_index = i % num_cols
         
         agence_data = agg_global[agg_global["Nom d'Agence"] == nom_agence]
-        
-        # Votre logique de récupération de données reste la même
-        max_cap = agence_data['Capacité'].values[0]
-        queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+
+        # Capacité et file d'attente : données temps réel Firebase en priorité
+        _rt = st.session_state.get('agencies_realtime', pd.DataFrame())
+        _rt_row = _rt[_rt['NomAgence'] == nom_agence] if not _rt.empty else pd.DataFrame()
+        if not _rt_row.empty:
+            max_cap   = int(_rt_row['Capacites'].values[0])
+            queue_now = int(_rt_row['ClientsEnAttente'].values[0])
+        else:
+            max_cap   = agence_data['Capacité'].values[0]
+            queue_now = agence_data['Nbs de Clients en Attente'].values[0]
         df_agence_queue = df_queue_filtered[df_queue_filtered['NomAgence'] == nom_agence]
         services_agence = df_agence_queue['NomService'].unique()
         
@@ -335,7 +339,7 @@ elif selected_tab == SUPERVISION_TABS[3]:
     if is_today:
         
 
-        df_past = run_query(conn, SQLQueries().AllQueueQueries, params=(yesterday,yesterday))
+        df_past = load_from_api(str(yesterday), str(yesterday))
 
         df_past = df_past[df_past['NomAgence'].isin(st.session_state.selected_agencies)]
         df_past = df_past[["Date_Reservation","Date_Appel","Date_Fin","NomAgence"]]
