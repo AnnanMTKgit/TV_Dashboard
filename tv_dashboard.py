@@ -14,7 +14,7 @@ from shared_code import *
 # --- 1. CONFIGURATION DE LA PAGE & INITIALISATION ---
 st.set_page_config(page_title="Marlodj TV Dashboard", layout="wide", page_icon="📺")
 
-
+st.markdown(""" <style>iframe[title="streamlit_echarts.st_echarts"]{ height: 600px !important } """, unsafe_allow_html=True)
 
 def load_base_css():
     """Charge les CSS qui s'appliquent à TOUTE l'application."""
@@ -416,7 +416,7 @@ def render_agency_analysis_frequentation_section(df_all, df_queue):
             color=[green_color, blue_clair_color] # Assurez-vous que ces variables de couleur sont définies
         )
         # On affiche le graphique avec st_echarts
-        st_echarts(options=options1, height="500px", key="freq_1")
+        st_echarts(options=options1, height="600px", key="freq_1")
         
     with c2:
         # On appelle la nouvelle fonction pour obtenir les options du second graphique
@@ -427,7 +427,7 @@ def render_agency_analysis_frequentation_section(df_all, df_queue):
             color=[green_color, blue_color] # Assurez-vous que ces variables de couleur sont définies
         )
         # On affiche le graphique avec st_echarts
-        st_echarts(options=options2, height="500px", key="freq_2")
+        st_echarts(options=options2, height="600px", key="freq_2")
         
     #st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -462,9 +462,9 @@ def render_agent_performance_evolution_categorie_section(df_all):
     st.markdown(f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        options_leaderboard=plot_line_chart_echarts(df_all)
-        st_echarts(options=options_leaderboard, height="600px", key="agent_leaderboard")
-        #st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
+        options_leaderboard=plot_line_chart(df_all)
+        #st_echarts(options=options_leaderboard, height="600px", key="agent_leaderboard")
+        st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
     with c2:
         st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="600px")
     #st.markdown("<hr>", unsafe_allow_html=True)
@@ -553,7 +553,7 @@ def render_wait_time_analysis_section(df_queue, **kwargs):
             "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
         }]
     }
-    st_echarts(options=options_heatmap, height="700px", key="heatmap_attente_hebdomadaire") # Augmenté la hauteur pour une meilleure visibilité
+    st_echarts(options=options_heatmap, height="650px", key="heatmap_attente_hebdomadaire") # Augmenté la hauteur pour une meilleure visibilité
 
     #st.markdown("<hr>", unsafe_allow_html=True)
 

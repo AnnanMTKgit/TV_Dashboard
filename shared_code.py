@@ -1469,7 +1469,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
         "grid": {
             "left": "3%",
             "right": "6%",
-            "bottom": "30%", # Increase bottom margin for rotated labels
+            "bottom": "20%", # Increase bottom margin for rotated labels
             "containLabel": True
         },
         # X-axis uses categories from the pivoted DataFrame's index
@@ -1576,7 +1576,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
 
 
         # Define the full ECharts options dictionary
-        options = {
+        options = {"backgroundColor":BackgroundGraphicColor,
             "title": {
                 "text": titre,
                 "left": "center"
@@ -2469,7 +2469,7 @@ def find_value_peak(df, person):
 
 
 
-def plot_line_chart(df):
+def plot_line_chart(df,h=600):
     if len(df['Date_Reservation'].dt.date.unique())==1:
 
         grouped = df.groupby('UserName').size().reset_index(name='count')
@@ -2498,7 +2498,7 @@ def plot_line_chart(df):
             'color': GraphicTitleColor  # Set your desired color
         }}
         ,plot_bgcolor=GraphicPlotColor,paper_bgcolor=BackgroundGraphicColor,
-            showlegend=False,height=500
+            showlegend=False,height=h
         )
         
     
@@ -2547,7 +2547,7 @@ def plot_line_chart(df):
             yaxis_title='Nombre d\'Opérations',
             xaxis_tickangle=-45,plot_bgcolor=GraphicPlotColor,paper_bgcolor=BackgroundGraphicColor,
            
-            height=500
+            height=h
 
         )
     return fig 
