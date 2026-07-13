@@ -272,7 +272,7 @@ def kpi_circle_chart(label, value, max_value, color_scheme):
 
 #     #st.markdown("<hr>", unsafe_allow_html=True)
 
-def render_kpis_and_map_section(agg_global, df_all_filtered):
+def render_kpis_and_map_section(df_queue_filtered, df_all_filtered):
     st.markdown('<div id="kpis_et_carte"></div>', unsafe_allow_html=True) 
     title = SECTIONS["kpis_et_carte"]['title']
     st.markdown(f"<h1 style='text-align: center; margin-bottom: 2rem;'>{title}</h1>", unsafe_allow_html=True)
@@ -303,10 +303,21 @@ def render_kpis_and_map_section(agg_global, df_all_filtered):
     """, unsafe_allow_html=True)
     
     # --- ÉTAPE 2 : CALCULER LES KPIs ---
-    TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
-    TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
-    NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
-    
+    # TMO = agg_global["Temps Moyen d'Operation (MIN)"].mean() if not agg_global.empty else 0
+    # TMA = agg_global["Temps Moyen d'Attente (MIN)"].mean() if not agg_global.empty else 0
+    # NMC = agg_global['Total Tickets'].sum() if not agg_global.empty else 0
+    _, agg_global,_,_= AgenceTable2(df_all_filtered, df_queue_filtered)
+    df_operation = df_all_filtered[df_all_filtered['Nom'].isin(['Traitée', 'Rejetée'])]
+    Temps_Moyen_Operation=df_operation[['TempOperation']].apply(lambda x: np.mean(x) / 60).values[0]
+
+    Temps_Moyen_Attente=df_queue_filtered[['TempsAttenteReel']].apply(lambda x: np.mean(x) / 60).values[0]
+
+
+
+    TMO = round(Temps_Moyen_Operation) #agg_global["Temps Moyen d'Operation (MIN)"].sum()/len(agg_global)
+    TMA = round(Temps_Moyen_Attente) #agg_global["Temps Moyen d'Attente (MIN)"].sum()/len(agg_global)
+
+    NMC = agg_global['Total Tickets'].sum()
     kpi_rh = df_all_filtered.groupby("NomService")["UserName"].nunique().reset_index().rename(columns={"UserName": "Nombre_Agents"})
 
     # Créer une liste de tous les KPIs à afficher pour faciliter la gestion
@@ -1077,7 +1088,7 @@ def render_scrolling_dashboard():
     # Dictionnaire des fonctions de rendu (inchangé)
 
     render_functions = {
-        "kpis_et_carte": (render_kpis_and_map_section,  {'agg_global': agence_global, 'df_all_filtered': df_all_filtered}),
+        "kpis_et_carte": (render_kpis_and_map_section,  {'df_queue_filtered': df_queue_filtered, 'df_all_filtered': df_all_filtered}),
         "top_sevice": (render_top_sevice, {'df_queue': df_queue_filtered}),
         "analyse_agence_performance": (render_agency_analysis_performance_section, {'df_all': df_all_filtered}),
         "analyse_agence_frequentation": (render_agency_analysis_frequentation_section, {'df_all': df_all_filtered, 'df_queue': df_queue_filtered}),
