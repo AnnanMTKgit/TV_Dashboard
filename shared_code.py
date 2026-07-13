@@ -862,14 +862,14 @@ def filter2(df_agence_Region):
     st.session_state.selected_agencies = [a for a in st.session_state.get('selected_agencies', []) if pd.notna(a)]
 
     # --- Préparation des données ---
-    df_main = st.session_state.df_main
-    
+    # --- Préparation des données ---
     status_mapping = {
         'Valider': 'Traitée',
         'Rejeter': 'Rejetée'
     }
-    if 'Nom' in df_main.columns:
-        df_main['Nom'] = df_main['Nom'].replace(status_mapping)
+    if 'Nom' in st.session_state.df_main.columns:
+        st.session_state.df_main['Nom'] = st.session_state.df_main['Nom'].replace(status_mapping)
+    df_main = st.session_state.df_main
     
     online_regions = sorted([r for r in df_main['Region'].unique().tolist() if r is not None and pd.notna(r)])
     all_online_agencies = sorted([a for a in df_main['NomAgence'].unique().tolist() if a is not None and pd.notna(a)])
