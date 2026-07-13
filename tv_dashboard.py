@@ -136,9 +136,12 @@ def scroll_to_anchor(anchor_id):
 @st.cache_data(ttl=600)
 def load_all_data(start_date, end_date):
     df_main = load_main_data(start_date, end_date)
+    
+    
     # Enrichir avec Capacites/Latitude/Longitude réelles (absentes de l'API réservations,
     # _map_api_to_df les met à 0/None par défaut) — même logique que create_sidebar_filters()
     _rt = load_agencies_realtime()
+    
     if not _rt.empty and not df_main.empty:
         _meta_cols = [c for c in ["NomAgence", "Capacites", "Latitude", "Longitude"] if c in _rt.columns]
         df_main = df_main.drop(
@@ -464,7 +467,7 @@ def render_agent_performance_evolution_categorie_section(df_all):
     with c1:
         options_leaderboard=plot_line_chart(df_all)
         #st_echarts(options=options_leaderboard, height="600px", key="agent_leaderboard")
-        st.plotly_chart(plot_line_chart(df_all), use_container_width=True)
+        st.plotly_chart(options_leaderboard, use_container_width=True)
     with c2:
         st_echarts(options=stacked_chart2(df_all, 'TempOperation', 'UserName', titre="Opérations par Catégorie"), height="600px")
     #st.markdown("<hr>", unsafe_allow_html=True)
@@ -705,9 +708,9 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
     NUM_COLS = 4
 
     # --- 3. PRÉPARATION DES DONNÉES ---
-    _, agg_global = AgenceTable(df_all, df_queue)
+    _, agg_global ,_,_= AgenceTable2(df_all, df_queue)
     agg_global_filtered = agg_global[agg_global["Nom d'Agence"].isin(st.session_state.selected_agencies)]
-    agg_global_sorted = agg_global_filtered.sort_values(by='Nbs de Clients en Attente', ascending=False)
+    agg_global_sorted = agg_global_filtered.sort_values(by='Clients en Attente Actuelle', ascending=False)
     
     online_agencies = agg_global_sorted["Nom d'Agence"].unique().tolist()
     total_online_agencies = len(online_agencies)
@@ -786,7 +789,7 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
                 
                 if not agence_data.empty:
                     max_cap = int(agence_data['Capacité'].values[0])
-                    queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+                    queue_now = agence_data['Clients en Attente Actuelle'].values[0]
                     status_class = get_status_info(queue_now, capacite=max_cap)
                     
                     services_html = " | ".join([
@@ -795,7 +798,7 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
                     ])
                 if not agence_data.empty:
                     max_cap = int(agence_data['Capacité'].values[0])
-                    queue_now = agence_data['Nbs de Clients en Attente'].values[0]
+                    queue_now = agence_data['Clients en Attente Actuelle'].values[0]
                     # La fonction get_status_info est supposée exister dans votre code
                     status_class = get_status_info(queue_now, capacite=max_cap)
                     
@@ -1049,7 +1052,7 @@ def render_scrolling_dashboard():
     st.session_state.start_date = today  # Forcer la date de début à aujourd'hui dans ce mode
     with st.spinner(f"Chargement des données ..."):
         df_all, df_queue = load_all_data(today, today)
-        
+       
         # Si aucune donnée n'est trouvée pour aujourd'hui, on arrête
         if df_all.empty:
             st.error(f"Aucune donnée disponible pour aujourd'hui ({today.strftime('%d/%m/%Y')}). Le tableau de bord ne peut pas démarrer.")

@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 import pydeck as pdk
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pltcs
 import plotly.io as pio
 import copy
 import altair as alt
@@ -43,7 +43,6 @@ except ImportError:
 # from pyspark.sql.functions import col, lit, sum, countDistinct, monotonically_increasing_id
 # from pyspark.sql.types import TimestampType
 # Variable de couleurs
-
 
 # --- Configuration Globale du Thème des Graphiques ---
 BackgroundGraphicColor = "white"
@@ -267,7 +266,7 @@ def get_connection():
 
 _pyodbc_hash_funcs = {pyodbc.Connection: id} if pyodbc else {}
 
-@st.cache_data(hash_funcs=_pyodbc_hash_funcs, ttl=3600, show_spinner=False)  # Cache 1h
+#@st.cache_data(hash_funcs=_pyodbc_hash_funcs, ttl=3600, show_spinner=False)  # Cache 1h
 def run_query_cached(_connection, sql, params):
     """Cache intelligent pour les requêtes lourdes avec TTL de 1h"""
     try:
@@ -357,8 +356,9 @@ def _format_and_finalize_df(df, sort_by, periode_str=None, is_reseau_view=False)
         'NombreRejetee': 'Total Rejetées',
         'NombrePassee': 'Total Passées',
         'NombreTickets': 'Total Tickets',
-        'AttenteActuel': 'Nbs de Clients en Attente',
-        'TotalMobile': 'TotalMobile'
+        'AttenteActuel': 'Clients en Attente Actuelle',
+        # 'TotalMobile': 'TotalMobile',
+        'TotalNonTraites': 'Total Non Traités'
     }
     df = df.rename(columns=new_name)
 
@@ -367,7 +367,7 @@ def _format_and_finalize_df(df, sort_by, periode_str=None, is_reseau_view=False)
         'Période', "Nom d'Agence", 'Region', "Temps Moyen d'Operation (MIN)", 
         "Temps Moyen d'Attente (MIN)", "Temps Moyen de Passage(MIN)", 
         'Capacité', 'Total Tickets', 'Total Traités', 'Total Rejetées', 
-        'Total Passées', 'TotalMobile', 'Nbs de Clients en Attente', 
+        'Total Passées', 'Total Non Traités', 'Clients en Attente Actuelle', 
         'Longitude', 'Latitude'
     ]
     if is_reseau_view:
@@ -387,100 +387,147 @@ def _format_and_finalize_df(df, sort_by, periode_str=None, is_reseau_view=False)
 
 def AgenceTable2(df_all, df_queue):
     """
-    Calcule 4 tables de performance avec la logique de capacité réseau corrigée.
+    Calcule 4 tables de performance avec un groupby basé uniquement sur les clés strictes,
+    en greffant les métadonnées (Capacités, Longitude, Latitude) à la fin.
     """
     try:
         if df_all.empty or df_queue.empty:
             return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
+        # On garde df1 complet au départ
         df1 = df_all.copy()
-        df1 = df1[df1['Nom'] == 'Traitée'].copy()
         df2 = df_queue.copy()
-
+        
+        # Récupération de la date du jour au format YYYY-MM-JJ
+        aujourdhui = datetime.now().strftime("%Y-%m-%d")
         df1['Date_Reservation'] = pd.to_datetime(df1['Date_Reservation'])
         df2['Date_Reservation'] = pd.to_datetime(df2['Date_Reservation'])
         df1['Mois'] = df1['Date_Reservation'].dt.to_period('M').astype(str)
         df2['Mois'] = df2['Date_Reservation'].dt.to_period('M').astype(str)
 
-        # Concaténer les deux dataframes pour avoir une liste complète des agences et de leurs capacités
-        df_combined = pd.concat([
-            df1[['NomAgence', 'Region', 'Capacites', 'Mois']],
-            df2[['NomAgence', 'Region', 'Capacites', 'Mois']]
-        ]).drop_duplicates().reset_index(drop=True)
+        # 📌 RECONSTRUCTION ROBUSTE DE META_AGENCE (Sauvegarde des Capacités ET Lat/Lon)
+        # On extrait les capacités uniques
+        caps = pd.concat([df1[['NomAgence', 'Region', 'Capacites']], df2[['NomAgence', 'Region', 'Capacites']]]).dropna(subset=['Capacites']).drop_duplicates(subset=['NomAgence', 'Region'])
+        # On extrait la géo unique (uniquement présente dans df2)
+        geo = df2[['NomAgence', 'Region', 'Longitude', 'Latitude']].dropna(subset=['Longitude', 'Latitude']).drop_duplicates(subset=['NomAgence', 'Region'])
+        
+        # On crée le référentiel de base complet de toutes les agences/régions vues dans le système
+        meta_agence = pd.concat([df1[['NomAgence', 'Region']], df2[['NomAgence', 'Region']]]).drop_duplicates().reset_index(drop=True)
+        # On y greffe les capacités et la géo
+        meta_agence = pd.merge(meta_agence, caps, on=['NomAgence', 'Region'], how='left')
+        meta_agence = pd.merge(meta_agence, geo, on=['NomAgence', 'Region'], how='left')
 
-        
-        # Votre dictionnaire devient beaucoup plus propre
-        
-        agg_perf = {
-            'Temps_Moyen_Operation': ('TempOperation', lambda x: float(np.nanmean(x) / 60) if len(x) > 0 else 0.0),
-            'Temps_Moyen_Attente': ('TempsAttenteReel', lambda x: float(np.nanmean(x) / 60) if len(x) > 0 else 0.0),
-        }
-        
+        # Extraction pour le temps d'opération (Traitée ou Rejetée)
+        df1_operation = df1[df1['Nom'].isin(['Traitée', 'Rejetée'])]
+
+        def calculer_non_traites(df_contexte):
+            aujourdhui = datetime.now().strftime("%Y-%m-%d")
+            return lambda x: (
+                (df_contexte.loc[x.index, 'Nom'] == 'En attente') & 
+                (x.astype(str).str[:10] != aujourdhui)
+            ).sum()
+
+        # Dictionnaires d'agrégation des files d'attente
         agg_queue_agence = {
-            'NombreTraites': ('Nom', lambda x:  (x == 'Traitée').sum()),
+            'NombreTraites': ('Nom', lambda x: (x == 'Traitée').sum()),
             'NombreRejetee': ('Nom', lambda x: (x == 'Rejetée').sum()),
             'NombrePassee': ('Nom', lambda x: (x == 'Passée').sum()),
             'NombreTickets': ('Date_Reservation', 'count'),
-            'TotalMobile': ('IsMobile', 'sum')
+            #'TotalMobile': ('IsMobile', 'sum'),
+            'TotalNonTraites': ('Date_Reservation', calculer_non_traites(df2))
+     
         }
         
-        # Pour le réseau, on ne calcule plus la capacité ici.
         agg_queue_reseau = {
             'NombreTickets': ('Date_Reservation', 'count'),
-            'TotalMobile': ('IsMobile', 'sum')
+            'NombreTraites': ('Nom', lambda x: (x == 'Traitée').sum()),
+            'NombreRejetee': ('Nom', lambda x: (x == 'Rejetée').sum()),
+            'NombrePassee': ('Nom', lambda x: (x == 'Passée').sum()),
+            #'TotalMobile': ('IsMobile', 'sum'),
+            'TotalNonTraites': ('Date_Reservation', calculer_non_traites(df2))
         }
     
-        # ==================== 1. VUE PAR AGENCE (inchangée) ====================
-        agg1_mensuel = df1.groupby(['Mois', 'NomAgence', "Region", 'Capacites']).agg(**agg_perf).reset_index()
-        agg2_mensuel = df2.groupby(['Mois', 'NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude'], dropna=False).agg(**agg_queue_agence).reset_index()
-        agg1_global = df1.groupby(['NomAgence', "Region", 'Capacites']).agg(**agg_perf).reset_index()
-        agg2_global = df2.groupby(['NomAgence', "Region", 'Capacites', 'Longitude', 'Latitude'], dropna=False).agg(**agg_queue_agence).reset_index()
+        # ==================== 1. VUE PAR AGENCE ====================
+        agg1_ope_mensuel = df1_operation.groupby(['Mois', 'NomAgence', 'Region'], dropna=False).agg(
+            Temps_Moyen_Operation=('TempOperation', lambda x: np.mean(x) / 60)
+        ).reset_index()
+        
+        agg1_ope_global = df1_operation.groupby(['NomAgence', 'Region'], dropna=False).agg(
+            Temps_Moyen_Operation=('TempOperation', lambda x: np.mean(x) / 60)
+        ).reset_index()
+
+        agg1_att_mensuel = df1.groupby(['Mois', 'NomAgence', 'Region'], dropna=False).agg(
+            Temps_Moyen_Attente=('TempsAttenteReel', lambda x: np.mean(x) / 60)
+        ).reset_index()
+        
+        agg1_att_global = df1.groupby(['NomAgence', 'Region'], dropna=False).agg(
+            Temps_Moyen_Attente=('TempsAttenteReel', lambda x: np.mean(x) / 60)
+        ).reset_index()
+
+        agg1_mensuel = pd.merge(agg1_ope_mensuel, agg1_att_mensuel, on=['Mois', 'NomAgence', 'Region'], how='outer')
+        agg1_global = pd.merge(agg1_ope_global, agg1_att_global, on=['NomAgence', 'Region'], how='outer')
+
+        agg2_mensuel = df2.groupby(['Mois', 'NomAgence', 'Region'], dropna=False).agg(**agg_queue_agence).reset_index()
+        agg2_global = df2.groupby(['NomAgence', 'Region'], dropna=False).agg(**agg_queue_agence).reset_index()
 
         attente_actuelle = []
         for agence in df2['NomAgence'].unique():
             df_agence = df2[df2['NomAgence'] == agence]
             if not df_agence.empty:
+                
                 heure_fermeture = df_agence['HeureFermeture'].iloc[0]
                 attente = current_attente(df2, agence, heure_fermeture)
                 attente_actuelle.append({'NomAgence': agence, 'AttenteActuel': attente})
         
-        attente_df = pd.DataFrame(attente_actuelle)
         if attente_actuelle:
             agg2_global = pd.merge(agg2_global, pd.DataFrame(attente_actuelle), on='NomAgence', how='left')
         else:
             agg2_global['AttenteActuel'] = 0
 
-        agence_mensuel = pd.merge(agg2_mensuel, agg1_mensuel, on=['Mois', 'NomAgence', "Region", 'Capacites'], how='outer')
-        agence_global = pd.merge(agg2_global, agg1_global, on=['NomAgence', "Region", 'Capacites'], how='outer')
+        agence_mensuel = pd.merge(agg2_mensuel, agg1_mensuel, on=['Mois', 'NomAgence', 'Region'], how='outer')
+        agence_global = pd.merge(agg2_global, agg1_global, on=['NomAgence', 'Region'], how='outer')
 
-        # ==================== 2. VUE POUR LE RÉSEAU (logique corrigée) ====================
-        # Agrégations pour le réseau (tickets, mobiles, temps, statuts...)
-        agg1_reseau_mensuel = df1.groupby(['Mois', 'Region']).agg(**agg_perf).reset_index()
-        agg2_reseau_mensuel = df2.groupby(['Mois', 'Region']).agg(**agg_queue_reseau).reset_index()
-        agg1_reseau_global = df1.groupby(['Region']).agg(**agg_perf).reset_index()
-        agg2_reseau_global = df2.groupby(['Region']).agg(**agg_queue_reseau).reset_index()
+        # 📌 GREFFE DES MÉTADONNÉES COMPLÈTES (Capacités, Longitude, Latitude)
+        agence_mensuel = pd.merge(agence_mensuel, meta_agence, on=['NomAgence', 'Region'], how='left')
+        agence_global = pd.merge(agence_global, meta_agence, on=['NomAgence', 'Region'], how='left')
 
-        # === NOUVELLE LOGIQUE POUR LA CAPACITÉ RÉSEAU ===
-        # 1. Obtenir la capacité unique pour chaque agence
-        capacites_uniques_par_agence = df_combined[['NomAgence', 'Region', 'Capacites']].drop_duplicates()
+
+        # ==================== 2. VUE POUR LE RÉSEAU ====================
+        agg1_ope_reseau_mensuel = df1_operation.groupby(['Mois', 'Region'], dropna=False).agg(
+            Temps_Moyen_Operation=('TempOperation', lambda x: np.mean(x) / 60)
+        ).reset_index()
         
-        # 2. Calculer la capacité totale du réseau (global) par région
-        capacite_reseau_global = capacites_uniques_par_agence.groupby('Region')['Capacites'].sum().reset_index()
-        
-        # 3. Calculer la capacité totale du réseau (mensuel) par mois et par région
-        # On ne garde qu'une ligne par mois/agence pour éviter les doublons avant de sommer
-        capacites_uniques_par_mois = df_combined[['Mois', 'NomAgence', 'Region', 'Capacites']].drop_duplicates()
-        capacite_reseau_mensuel = capacites_uniques_par_mois.groupby(['Mois', 'Region'])['Capacites'].sum().reset_index()
+        agg1_ope_reseau_global = df1_operation.groupby(['Region'], dropna=False).agg(
+            Temps_Moyen_Operation=('TempOperation', lambda x: np.mean(x) / 60)
+        ).reset_index()
 
-        # Fusion des données de performance et de file d'attente
+        agg1_att_reseau_mensuel = df1.groupby(['Mois', 'Region'], dropna=False).agg(
+            Temps_Moyen_Attente=('TempsAttenteReel', lambda x: np.mean(x) / 60)
+        ).reset_index()
+        
+        agg1_att_reseau_global = df1.groupby(['Region'], dropna=False).agg(
+            Temps_Moyen_Attente=('TempsAttenteReel', lambda x: np.mean(x) / 60)
+        ).reset_index()
+
+        agg1_reseau_mensuel = pd.merge(agg1_ope_reseau_mensuel, agg1_att_reseau_mensuel, on=['Mois', 'Region'], how='outer')
+        agg1_reseau_global = pd.merge(agg1_ope_reseau_global, agg1_att_reseau_global, on=['Region'], how='outer')
+
+        agg2_reseau_mensuel = df2.groupby(['Mois', 'Region'], dropna=False).agg(**agg_queue_reseau).reset_index()
+        agg2_reseau_global = df2.groupby(['Region'], dropna=False).agg(**agg_queue_reseau).reset_index()
+
+        capacite_reseau_global = meta_agence.groupby('Region', dropna=False)['Capacites'].sum().reset_index()
+        
+        df_combined_brut = pd.concat([df1[['Mois', 'NomAgence', 'Region']], df2[['Mois', 'NomAgence', 'Region']]]).drop_duplicates()
+        df_combined_avec_cap = pd.merge(df_combined_brut, meta_agence[['NomAgence', 'Region', 'Capacites']], on=['NomAgence', 'Region'], how='left')
+        capacite_reseau_mensuel = df_combined_avec_cap.groupby(['Mois', 'Region'], dropna=False)['Capacites'].sum().reset_index()
+
         reseau_mensuel = pd.merge(agg2_reseau_mensuel, agg1_reseau_mensuel, on=['Mois', 'Region'], how='outer')
         reseau_global = pd.merge(agg2_reseau_global, agg1_reseau_global, on=['Region'], how='outer')
 
-        # Fusion AVEC LA CAPACITÉ CORRECTEMENT CALCULÉE
         reseau_mensuel = pd.merge(reseau_mensuel, capacite_reseau_mensuel, on=['Mois', 'Region'], how='left')
         reseau_global = pd.merge(reseau_global, capacite_reseau_global, on=['Region'], how='left')
         
-        # ==================== 3. FORMATAGE FINAL (inchangé) ====================
+        # ==================== 3. FORMATAGE FINAL ====================
         all_dates = pd.concat([df1['Date_Reservation'], df2['Date_Reservation']]).dropna()
         periode_globale = f"{all_dates.min().strftime('%Y-%m-%d')} - {all_dates.max().strftime('%Y-%m-%d')}"
         
@@ -492,12 +539,8 @@ def AgenceTable2(df_all, df_queue):
         return agence_mensuel_f, agence_global_f, reseau_mensuel_f, reseau_global_f
 
     except Exception as e:
-        # st.error(f"Erreur dans AgenceTable: {e}")
         print(f"Erreur dans AgenceTable: {e}")
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-
-
 
 
 
@@ -609,7 +652,7 @@ def AgenceTable(df_all, df_queue):
             'NombreRejetee': 'Total Rejetées',
             'NombrePassee': 'Total Passées',
             'NombreTickets': 'Total Tickets',
-            'AttenteActuel': 'Nbs de Clients en Attente',
+            'AttenteActuel': 'Clients en Attente Actuelle',
             'TotalMobile': 'TotalMobile'
         }
 
@@ -620,7 +663,7 @@ def AgenceTable(df_all, df_queue):
             'Période', "Nom d'Agence", 'Region', "Temps Moyen d'Operation (MIN)", 
             "Temps Moyen d'Attente (MIN)", "Temps Moyen de Passage(MIN)", 
             'Capacité', 'Total Tickets', 'Total Traités', 'Total Rejetées', 
-            'Total Passées', 'TotalMobile', 'Nbs de Clients en Attente', 
+            'Total Passées', 'TotalMobile', 'Clients en Attente Actuelle', 
             'Longitude', 'Latitude'
         ]
         
@@ -671,14 +714,14 @@ def AgenceTable(df_all, df_queue):
 #     globale["Temps Moyen de Passage(MIN)"]=globale['Temps_Moyen_Attente']+globale['Temps_Moyen_Operation']
 #     ###########
     
-#     new_name={'NomAgence':"Nom d'Agence",'Capacites':'Capacité','Temps_Moyen_Operation':"Temps Moyen d'Operation (MIN)",'Temps_Moyen_Attente':"Temps Moyen d'Attente (MIN)",'NombreTraites':'Total Traités','NombreRejetee':'Total Rejetées','NombrePassee':'Total Passées','NombreTickets':'Total Tickets','AttenteActuel':'Nbs de Clients en Attente'}
+#     new_name={'NomAgence':"Nom d'Agence",'Capacites':'Capacité','Temps_Moyen_Operation':"Temps Moyen d'Operation (MIN)",'Temps_Moyen_Attente':"Temps Moyen d'Attente (MIN)",'NombreTraites':'Total Traités','NombreRejetee':'Total Rejetées','NombrePassee':'Total Passées','NombreTickets':'Total Tickets','AttenteActuel':'Clients en Attente Actuelle'}
 
 
 #     detail=detail.rename(columns=new_name)
 #     globale=globale.rename(columns=new_name)
     
 
-#     # order=['Période',"Nom d'Agence", "Temps Moyen d'Operation (MIN)", "Temps Moyen d'Attente (MIN)","Temps Moyen de Passage(MIN)",'Capacité','Total Tickets','Total Traités','Total Rejetées','Total Passées','TotalMobile','Nbs de Clients en Attente','Longitude','Latitude']
+#     # order=['Période',"Nom d'Agence", "Temps Moyen d'Operation (MIN)", "Temps Moyen d'Attente (MIN)","Temps Moyen de Passage(MIN)",'Capacité','Total Tickets','Total Traités','Total Rejetées','Total Passées','TotalMobile','Clients en Attente Actuelle','Longitude','Latitude']
 #     # detail=detail[order]
 #     # globale=globale[order]
   
@@ -820,6 +863,14 @@ def filter2(df_agence_Region):
 
     # --- Préparation des données ---
     df_main = st.session_state.df_main
+    
+    status_mapping = {
+        'Valider': 'Traitée',
+        'Rejeter': 'Rejetée'
+    }
+    if 'Nom' in df_main.columns:
+        df_main['Nom'] = df_main['Nom'].replace(status_mapping)
+    
     online_regions = sorted([r for r in df_main['Region'].unique().tolist() if r is not None and pd.notna(r)])
     all_online_agencies = sorted([a for a in df_main['NomAgence'].unique().tolist() if a is not None and pd.notna(a)])
     
@@ -925,7 +976,7 @@ API_RESERVATIONS_URL           = f"{API_BASE_URL}/api/kpis/unified/reservations"
 API_AGENCIES_DISPONIBILITE_URL = "https://93-127-143-233.nip.io/api/agences/disponibilite"
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
+#@st.cache_data(ttl=86400, show_spinner=False)
 def load_agencies_from_api() -> pd.DataFrame:
     """Charge la liste des agences.
 
@@ -988,7 +1039,7 @@ def load_agencies_from_api() -> pd.DataFrame:
                                      "HeureDemarrage", "HeureFermeture", "Status"])
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+#@st.cache_data(ttl=60, show_spinner=False)
 def load_agencies_realtime() -> pd.DataFrame:
     """Données temps réel par agence (cache 60 s, sans auth).
 
@@ -1026,7 +1077,7 @@ def load_agencies_realtime() -> pd.DataFrame:
                                      "SuspensionActivite", "ActivationReservation"])
 
 
-@st.cache_data(ttl=3000, show_spinner=False)
+#@st.cache_data(ttl=3000, show_spinner=False)
 def get_api_token() -> str:
     credentials = {
         "email":    st.secrets["api"]["email"],
@@ -1085,7 +1136,7 @@ def _map_api_to_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
+#@st.cache_data(ttl=1800, show_spinner=False)
 def load_from_api(start_date: str, end_date: str) -> pd.DataFrame:
     token = get_api_token()
     headers = {"Authorization": f"Bearer {token}"}
@@ -1119,7 +1170,7 @@ def load_from_api(start_date: str, end_date: str) -> pd.DataFrame:
     return _map_api_to_df(pd.DataFrame(all_records))
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
+#@st.cache_data(ttl=1800, show_spinner=False)
 def load_main_data(start_date, end_date):
     """Charge les données principales via l'API REST (paginée)."""
     return load_from_api(
@@ -1195,6 +1246,7 @@ def create_sidebar_filters():
         # On initialise aussi la liste de toutes les agences et les agences sélectionnées par défaut
         AllAgences = df_Agence_Regionx['NomAgence'].unique().tolist()
         st.session_state.all_agencies = AllAgences
+    
     
     filter2(st.session_state.all_agence_Region)
     # Initialiser dans st.session_state si la clé n'existe pas
@@ -1469,7 +1521,7 @@ def stacked_chart2(data,type:str,concern:str,titre):
         "grid": {
             "left": "3%",
             "right": "6%",
-            "bottom": "20%", # Increase bottom margin for rotated labels
+            "bottom": "30%", # Increase bottom margin for rotated labels
             "containLabel": True
         },
         # X-axis uses categories from the pivoted DataFrame's index
@@ -2469,7 +2521,7 @@ def find_value_peak(df, person):
 
 
 
-def plot_line_chart(df,h=600):
+def plot_line_chart(df):
     if len(df['Date_Reservation'].dt.date.unique())==1:
 
         grouped = df.groupby('UserName').size().reset_index(name='count')
@@ -2498,7 +2550,7 @@ def plot_line_chart(df,h=600):
             'color': GraphicTitleColor  # Set your desired color
         }}
         ,plot_bgcolor=GraphicPlotColor,paper_bgcolor=BackgroundGraphicColor,
-            showlegend=False,height=h
+            showlegend=False,height=600
         )
         
     
@@ -2547,7 +2599,7 @@ def plot_line_chart(df,h=600):
             yaxis_title='Nombre d\'Opérations',
             xaxis_tickangle=-45,plot_bgcolor=GraphicPlotColor,paper_bgcolor=BackgroundGraphicColor,
            
-            height=h
+            height=600
 
         )
     return fig 
