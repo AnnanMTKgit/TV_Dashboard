@@ -801,18 +801,44 @@ def render_supervision_monitoring_section(df_all, df_queue, df_agencies_regions,
                 if not agence_data.empty:
                     max_cap = int(agence_data['Capacité'].values[0])
                     queue_now = agence_data['Clients en Attente Actuelle'].values[0]
+
+                    _rt = load_agencies_realtime()
+                    _rt_row = _rt[_rt['NomAgence'] == nom_agence] if not _rt.empty else pd.DataFrame()
+                    if not _rt_row.empty:
+                        
+                        max_cap   = int(_rt_row['Capacites'].values[0])
+                        queue_now = int(_rt_row['ClientsEnAttente'].values[0])
+                       
+                        
+                        if "AttenteParService" in _rt_row.columns :
+                            raw_attente = _rt_row['AttenteParService'].values[0]
+                            if len(raw_attente) > 0 and isinstance(raw_attente, list):
+                            
+                                service_dict = {item["nomService"]: item["clientsEnAttente"] for item in raw_attente}
+                            else:
+                                service_dict = {}
+                        services_html = " | ".join([
+                            f"{nom_service}: {attente}" 
+                            for nom_service, attente in service_dict.items()
+                        ])
+                    else:
+                        
+                        max_cap   = agence_data['Capacité'].values[0]
+                        queue_now = agence_data['Clients en Attente Actuelle'].values[0]
+                        services_html = " | ".join([
+                                                f"{s}: {current_attente(df_queue[(df_queue['NomAgence'] == nom_agence) & (df_queue['NomService'] == s)], nom_agence)}" 
+                                                for s in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
+                                            ])
+                        
+                    
                     status_class = get_status_info(queue_now, capacite=max_cap)
                     
-                    services_html = " | ".join([
-                        f"{s}: {current_attente(df_queue[(df_queue['NomAgence'] == nom_agence) & (df_queue['NomService'] == s)], nom_agence)}" 
-                        for s in df_queue[df_queue['NomAgence'] == nom_agence]['NomService'].unique()
-                    ])
-                if not agence_data.empty:
-                    max_cap = int(agence_data['Capacité'].values[0])
-                    queue_now = agence_data['Clients en Attente Actuelle'].values[0]
-                    # La fonction get_status_info est supposée exister dans votre code
-                    status_class = get_status_info(queue_now, capacite=max_cap)
+
+
+
                     
+
+                
                     # Construction de la carte-métrique
                     st.markdown(f"""
                             <div class="metric-card" style="margin-bottom: 1.5rem;">
